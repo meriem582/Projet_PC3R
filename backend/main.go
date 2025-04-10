@@ -1,6 +1,14 @@
 package main
 
-/*func main() {
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/gorilla/mux"
+)
+
+func main() {
 	r := mux.NewRouter()
 
 	// Routes API
@@ -14,4 +22,3 @@ package main
 	fmt.Println("Serveur démarré sur http://localhost:" + port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
-*/
