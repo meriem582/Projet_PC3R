@@ -1,24 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 func main() {
-	r := mux.NewRouter()
+	// Initialise la variable globale db
+	db = InitDB()
+	defer db.Close()
 
-	// Routes API
-	r.HandleFunc("/search", SearchHandler).Methods("GET")
-	r.HandleFunc("/favorites", GetFavorites).Methods("GET")
-	r.HandleFunc("/favorites", AddFavorite).Methods("POST")
-	r.HandleFunc("/favorites/{id}", DeleteFavorite).Methods("DELETE")
+	// Ici, on passe la fonction SearchHandler directement (sans l'appeler)
+	http.HandleFunc("/search", SearchHandler)
 
-	// Lancer le serveur
-	port := "8080"
-	fmt.Println("Serveur démarré sur http://localhost:" + port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Println("Serveur lancé sur le port 8080 🚀")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("Erreur lors du démarrage du serveur : %v", err)
+	}
 }

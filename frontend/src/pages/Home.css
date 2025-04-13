@@ -1,0 +1,110 @@
+.page-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  background-color: #18191a;
+}
+
+.content-wrapper {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  align-items: center;
+}
+
+.watch-card {
+  background-color: #242526;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  width: 100%;
+}
+
+.watch-card-header {
+  padding: 5px 10px;
+  color: #fff;
+}
+
+.artist-name {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.track-title {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.image-container {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.artist-image {
+  width: 100%;
+  display: block;
+}
+
+.custom-play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  padding: 10px;
+  z-index: 2;
+  transition: background 0.3s;
+}
+
+.custom-play-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.audio-bar {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.image-container:hover .audio-bar {
+  opacity: 1;
+}
+
+.audio-bar audio {
+  width: 95%;
+  height: 28px;
+}
+
+.track-info {
+  padding: 10px;
+  color: #ddd;
+  font-size: 0.9rem;
+}
+
+.deezer-link {
+  color: #ab10a3;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.deezer-link:hover {
+  text-decoration: underline;
+}

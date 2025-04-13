@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"strings"
 
@@ -17,10 +16,10 @@ import (
 )
 
 const (
-	DB_HOST     = "dpg-cvhgjr52ng1s739rlu5g-a.oregon-postgres.render.com"
-	DB_NAME     = "music_app_bdd"
+	DB_HOST     = "dpg-cvtuc3q4d50c73aodl90-a.oregon-postgres.render.com"
+	DB_NAME     = "music_app_l1yd"
 	DB_USER     = "admin"
-	DB_PASSWORD = "dGOELcuc4Bnm55gaGPJ1wfZ9IXBfP4LP"
+	DB_PASSWORD = "X9KFl31tkZrhQDHFuuYWeG80eoB84S1O"
 )
 
 type Genre struct {
@@ -335,6 +334,25 @@ func fetchAndInsertTracksForAlbums(db *sql.DB) {
 		log.Fatal("Erreur itération sur les albums:", err)
 	}
 }
+func clearAllTables(db *sql.DB) {
+	tables := []string{
+		"album_genres",
+		"tracks",
+		"charts",
+		"albums",
+		"artists",
+		"genres",
+	}
+
+	for _, table := range tables {
+		_, err := db.Exec(fmt.Sprintf(`TRUNCATE TABLE "%s" RESTART IDENTITY CASCADE;`, table))
+		if err != nil {
+			log.Printf("Erreur lors du TRUNCATE de %s: %v", table, err)
+		} else {
+			log.Printf("Table %s vidée.", table)
+		}
+	}
+}
 
 func main() {
 	dsn := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=require", DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
@@ -344,36 +362,34 @@ func main() {
 	}
 	defer db.Close()
 
-	for {
-		log.Println("Début de la mise à jour de la base de données...")
-		fetchAndInsertGenres(db)
+	log.Println("Début de la mise à jour de la base de données...")
+	clearAllTables(db)
+	fetchAndInsertGenres(db)
 
-		// Récupérer les genres depuis la base de données
-		genres, err := fetchGenresFromDB(db)
-		if err != nil {
-			log.Fatal("Erreur récupération genres:", err)
-		}
-
-		// Pour chaque genre, récupérer et insérer les albums associés
-		for _, genre := range genres {
-			fetchAndInsertAlbumsByGenre(db, genre.Name, genre.ID)
-		}
-
-		ArtistIds, err := fetchArtistIdFromDB(db)
-		if err != nil {
-			log.Fatal("Erreur récupération artistIds:", err)
-		}
-
-		for _, artistId := range ArtistIds {
-			fetchAndInsertArtistsByAlbum(db, artistId)
-		}
-		fetchAndInsertCharts(db)
-
-		// Récupérer et insérer les tracks pour chaque album
-		fetchAndInsertTracksForAlbums(db)
-
-		log.Println("Mise à jour terminée. Attente de 30 secondes...")
-		time.Sleep(30 * time.Second)
-
+	// Récupérer les genres depuis la base de données
+	genres, err := fetchGenresFromDB(db)
+	if err != nil {
+		log.Fatal("Erreur récupération genres:", err)
 	}
+
+	// Pour chaque genre, récupérer et insérer les albums associés
+	for _, genre := range genres {
+		fetchAndInsertAlbumsByGenre(db, genre.Name, genre.ID)
+	}
+
+	ArtistIds, err := fetchArtistIdFromDB(db)
+	if err != nil {
+		log.Fatal("Erreur récupération artistIds:", err)
+	}
+
+	for _, artistId := range ArtistIds {
+		fetchAndInsertArtistsByAlbum(db, artistId)
+	}
+	fetchAndInsertCharts(db)
+
+	// Récupérer et insérer les tracks pour chaque album
+	fetchAndInsertTracksForAlbums(db)
+
+	log.Println("Mise à jour terminée. Attente de 30 secondes...")
+
 }
