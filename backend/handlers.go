@@ -32,9 +32,8 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	case "track":
 		rows, err = db.Query(`
             SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
-                   a.nb_album AS artist_nb_album, a.nb_fans AS artist_nb_fans,
                    t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
-                   al.title AS album_title, al.cover AS album_cover
+                   al.title AS album_title
             FROM artists AS a 
             JOIN tracks AS t ON t.id_artist = a.id_artist
             LEFT JOIN albums AS al ON t.id_album = al.id_album
@@ -42,9 +41,8 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	case "album":
 		rows, err = db.Query(`
             SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
-                   a.nb_album AS artist_nb_album, a.nb_fans AS artist_nb_fans,
                    t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
-                   al.title AS album_title, al.cover AS album_cover
+                   al.title AS album_title
             FROM artists AS a 
             JOIN tracks AS t ON t.id_artist = a.id_artist
             JOIN albums AS al ON t.id_album = al.id_album
@@ -52,9 +50,8 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	default: // artist
 		rows, err = db.Query(`
             SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
-                   a.nb_album AS artist_nb_album, a.nb_fans AS artist_nb_fans,
                    t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
-                   al.title AS album_title, al.cover AS album_cover
+                   al.title AS album_title
             FROM artists AS a 
             JOIN tracks AS t ON t.id_artist = a.id_artist
             LEFT JOIN albums AS al ON t.id_album = al.id_album
@@ -71,28 +68,26 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var (
-			id, nb_album, nb_fans                           int
+			id                                              int
 			name, picture, link, title, track_link, preview string
-			album_title, album_cover                        sql.NullString // Utilisation de NullString pour gérer les valeurs NULL
+			album_title                                     sql.NullString // Utilisation de NullString pour gérer les valeurs NULL
 		)
 
 		// Assurez-vous que l'ordre des colonnes correspond à votre requête SQL
 		if err := rows.Scan(
-			&id, &name, &link, &picture, &nb_album, &nb_fans,
+			&id, &name, &link, &picture,
 			&title, &track_link, &preview,
-			&album_title, &album_cover,
+			&album_title,
 		); err != nil {
 			http.Error(w, "Erreur lecture résultat: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		result := map[string]interface{}{
-			"id":       id,
-			"name":     name,
-			"picture":  picture,
-			"link":     link,
-			"nb_album": nb_album,
-			"nb_fans":  nb_fans,
+			"id":      id,
+			"name":    name,
+			"picture": picture,
+			"link":    link,
 			"track": map[string]interface{}{
 				"title":   title,
 				"link":    track_link,
@@ -104,9 +99,6 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		if album_title.Valid {
 			albumInfo := map[string]interface{}{
 				"title": album_title.String,
-			}
-			if album_cover.Valid {
-				albumInfo["cover"] = album_cover.String
 			}
 			result["album"] = albumInfo
 		}
@@ -120,7 +112,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 
 func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(`
-        SELECT id_chart, title, link, preview, explicit_lyrics, 
+        SELECT id_chart, title, link, preview, 
                id_artist, id_album, nom_artist, picture_artist, 
                link_artist, nom_album FROM Charts
     `)
@@ -135,14 +127,13 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var (
 			title, link, preview          string
-			explicit_lyrics               bool
 			id_artist, id_album, id_chart int
 			nom_artist, picture_artist    string
 			link_artist, nom_album        string
 		)
 
 		if err := rows.Scan(
-			&id_chart, &title, &link, &preview, &explicit_lyrics,
+			&id_chart, &title, &link, &preview,
 			&id_artist, &id_album, &nom_artist, &picture_artist,
 			&link_artist, &nom_album,
 		); err != nil {
@@ -152,17 +143,16 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		charts = append(charts, map[string]interface{}{
-			"id_chart":        id_chart,
-			"title":           title,
-			"link":            link,
-			"preview":         preview,
-			"explicit_lyrics": explicit_lyrics,
-			"id_artist":       id_artist,
-			"id_album":        id_album,
-			"nom_artist":      nom_artist,
-			"picture_artist":  picture_artist,
-			"link_artist":     link_artist,
-			"nom_album":       nom_album,
+			"id_chart":       id_chart,
+			"title":          title,
+			"link":           link,
+			"preview":        preview,
+			"id_artist":      id_artist,
+			"id_album":       id_album,
+			"nom_artist":     nom_artist,
+			"picture_artist": picture_artist,
+			"link_artist":    link_artist,
+			"nom_album":      nom_album,
 		})
 	}
 
@@ -186,7 +176,7 @@ func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 	offset := (pageNumber - 1) * limit
 
 	rows, err := db.Query(`
-		SELECT a.id_artist, a.name, a.link, a.picture, a.nb_album, a.nb_fans,
+		SELECT a.id_artist, a.name, a.link, a.picture,
 		       t.title, t.link, t.preview
 		FROM artists AS a
 		JOIN tracks AS t ON t.id_artist = a.id_artist
@@ -202,19 +192,17 @@ func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 	var tracks []map[string]interface{}
 
 	for rows.Next() {
-		var id, nb_album, nb_fans int
+		var id int
 		var name, picture, link, title, track_link, preview string
-		if err := rows.Scan(&id, &name, &link, &picture, &nb_album, &nb_fans, &title, &track_link, &preview); err != nil {
+		if err := rows.Scan(&id, &name, &link, &picture, &title, &track_link, &preview); err != nil {
 			http.Error(w, "Erreur lecture résultat", http.StatusInternalServerError)
 			return
 		}
 		tracks = append(tracks, map[string]interface{}{
-			"id":       id,
-			"name":     name,
-			"picture":  picture,
-			"link":     link,
-			"nb_album": nb_album,
-			"nb_fans":  nb_fans,
+			"id":      id,
+			"name":    name,
+			"picture": picture,
+			"link":    link,
 			"track": map[string]interface{}{
 				"title":   title,
 				"link":    track_link,

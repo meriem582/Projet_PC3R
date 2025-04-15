@@ -31,8 +31,6 @@ type Album struct {
 	ID          int    `json:"id"`
 	Title       string `json:"title"`
 	Link        string `json:"link"`
-	ReleaseDate string `json:"release_date"`
-	Cover       string `json:"cover"`
 	Artist      struct {
 		ID int `json:"id"`
 	} `json:"artist"`
@@ -43,8 +41,6 @@ type Artist struct {
 	Name     string `json:"name"`
 	Link     string `json:"link"`
 	Picture  string `json:"picture"`
-	NbAlbums int    `json:"nb_album"`
-	NbFans   int    `json:"nb_fans"`
 }
 
 type Chart struct {
@@ -52,7 +48,6 @@ type Chart struct {
 	Title          string `json:"title"`
 	Link           string `json:"link"`
 	Preview        string `json:"preview"`
-	ExplicitLyrics bool   `json:"explicit_lyrics"`
 	Artist         struct {
 		ID      int    `json:"id"`
 		Name    string `json:"name"`
@@ -70,10 +65,6 @@ type Track struct {
 	Title          string `json:"title"`
 	Preview        string `json:"preview"`
 	Link           string `json:"link"`
-	Duration       int    `json:"duration"`
-	Rank           int    `json:"rank"`
-	ReleaseDate    string `json:"release_date"`
-	ExplicitLyrics bool   `json:"explicit_lyrics"`
 	Album          struct {
 		ID int `json:"id"`
 	} `json:"album"`
@@ -111,37 +102,31 @@ func insertGenre(db *sql.DB, genre Genre) {
 }
 
 func insertChart(db *sql.DB, chart Chart) {
-	query := `INSERT INTO "charts" (id_chart, title, link, preview, explicit_lyrics, id_artist, id_album, nom_artist, picture_artist, link_artist, nom_album) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+	query := `INSERT INTO "charts" (id_chart, title, link, preview, id_artist, id_album, nom_artist, picture_artist, link_artist, nom_album) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
 	          ON CONFLICT (id_chart) DO NOTHING;`
-	_, err := db.Exec(query, chart.ID, chart.Title, chart.Link, chart.Preview, chart.ExplicitLyrics, chart.Artist.ID, chart.Album.ID, chart.Artist.Name, chart.Artist.Picture, chart.Artist.Link, chart.Album.Title)
+	_, err := db.Exec(query, chart.ID, chart.Title, chart.Link, chart.Preview, chart.Artist.ID, chart.Album.ID, chart.Artist.Name, chart.Artist.Picture, chart.Artist.Link, chart.Album.Title)
 	if err != nil {
 		log.Printf("Erreur insertion chart %d: %v", chart.ID, err)
 	}
 }
 
 func insertAlbum(db *sql.DB, album Album) {
-	var releaseDate interface{}
-	if album.ReleaseDate == "" {
-		releaseDate = nil
-	} else {
-		releaseDate = album.ReleaseDate
-	}
 
-	query := `INSERT INTO "albums" (id_album, title, link, release_date, cover, id_artist) 
-	          VALUES ($1, $2, $3, $4, $5, $6) 
+	query := `INSERT INTO "albums" (id_album, title, link, id_artist) 
+	          VALUES ($1, $2, $3, $4) 
 	          ON CONFLICT (id_album) DO NOTHING;`
-	_, err := db.Exec(query, album.ID, album.Title, album.Link, releaseDate, album.Cover, album.Artist.ID) // <-- Correction ici
+	_, err := db.Exec(query, album.ID, album.Title, album.Link, album.Artist.ID) // <-- Correction ici
 	if err != nil {
 		log.Printf("Erreur insertion album %d: %v", album.ID, err)
 	}
 }
 
 func insertArtist(db *sql.DB, artist Artist) {
-	query := `INSERT INTO "artists" (id_artist, name, link, picture, nb_album, nb_fans) 
-	          VALUES ($1, $2, $3, $4, $5, $6) 
+	query := `INSERT INTO "artists" (id_artist, name, link, picture) 
+	          VALUES ($1, $2, $3, $4) 
 	          ON CONFLICT (id_artist) DO NOTHING;`
-	_, err := db.Exec(query, artist.ID, artist.Name, artist.Link, artist.Picture, artist.NbAlbums, artist.NbFans)
+	_, err := db.Exec(query, artist.ID, artist.Name, artist.Link, artist.Picture)
 	if err != nil {
 		log.Printf("Erreur insertion artist %d: %v", artist.ID, err)
 	}
@@ -149,16 +134,10 @@ func insertArtist(db *sql.DB, artist Artist) {
 
 // Insérer une track
 func insertTrack(db *sql.DB, track Track) {
-	var releaseDate interface{}
-	if track.ReleaseDate == "" {
-		releaseDate = nil
-	} else {
-		releaseDate = track.ReleaseDate
-	}
-	query := `INSERT INTO "tracks" (id_track, title, preview, link, duration, rank, release_date, explicit_lyrics, id_album, id_artist) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+	query := `INSERT INTO "tracks" (id_track, title, preview, link, id_album, id_artist) 
+	          VALUES ($1, $2, $3, $4, $5, $6) 
 	          ON CONFLICT (id_track) DO NOTHING;`
-	_, err := db.Exec(query, track.ID, track.Title, track.Preview, track.Link, track.Duration, track.Rank, releaseDate, track.ExplicitLyrics, track.Album.ID, track.Artist.ID)
+	_, err := db.Exec(query, track.ID, track.Title, track.Preview, track.Link, track.Album.ID, track.Artist.ID)
 	if err != nil {
 		log.Printf("Erreur insertion track %d: %v", track.ID, err)
 	}
