@@ -163,3 +163,84 @@
         font-size: 1.5rem;
     }
 }
+
+.comment-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+  
+  .edit-comment-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+  
+  .save-edit-btn, .cancel-edit-btn, .edit-comment-btn, .delete-comment-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .save-edit-btn {
+    background: #4CAF50;
+    color: white;
+  }
+  
+  .cancel-edit-btn {
+    background: #f44336;
+    color: white;
+  }
+  
+  .edit-comment-btn {
+    background: #2196F3;
+    color: white;
+  }
+  
+  .delete-comment-btn {
+    background: #ff5722;
+    color: white;
+  }
+  
+
+
+  .reply-btn {
+    background: #9C27B0;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.add-response {
+    margin-top: 10px;
+}
+
+.responses-list {
+    margin-left: 20px;
+    border-left: 2px solid #ddd;
+    padding-left: 10px;
+}
+
+.response {
+    margin: 8px 0;
+    padding: 8px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.delete-response-btn {
+    background: #ff5722;
+    color: white;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 8px;
+}

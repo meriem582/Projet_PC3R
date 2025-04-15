@@ -20,6 +20,10 @@ func main() {
 	http.HandleFunc("/comment", AddCommentHandler)           // POST
 	http.HandleFunc("/comments", GetCommentsHandler)         // GET
 	http.HandleFunc("/comment/delete", DeleteCommentHandler) // DELETE
+	http.HandleFunc("/comment/update", UpdateCommentHandler) //update
+	http.HandleFunc("/response/add", AddResponseHandler)
+	http.HandleFunc("/response/get", GetResponsesHandler)
+	http.HandleFunc("/response/delete", DeleteResponseHandler)
 
 	log.Println("Serveur lancé sur le port 8080 🚀")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

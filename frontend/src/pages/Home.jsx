@@ -17,6 +17,11 @@ function Home() {
   const [comments, setComments] = useState({});
   const [newComment, setNewComment] = useState("");
   const [activeCommentTrack, setActiveCommentTrack] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null); 
+  const [editedCommentText, setEditedCommentText] = useState(""); 
+  const [responses, setResponses] = useState({}); 
+  const [newResponse, setNewResponse] = useState(""); 
+  const [activeResponseComment, setActiveResponseComment] = useState(null); 
 
   // Fonctions pour les likes
   const fetchLikeInfo = async (trackId) => {
@@ -60,7 +65,7 @@ function Home() {
       console.error('Erreur lors de la récupération des commentaires :', error);
     }
   };
-
+  // Fonction pour ajouter un commentaire
   const handleAddComment = async (trackId) => {
     if (!user || !newComment.trim()) return;
     
@@ -76,22 +81,41 @@ function Home() {
       console.error("Erreur lors de l'ajout du commentaire :", error);
     }
   };
-
+  // Fonction pour supprimer un commentaire
   const handleDeleteComment = async (commentId) => {
     if (!user) return;
     
     try {
       await axios.delete('/comment/delete', {
         data: {
-          id_user: user.id,
-          id_comment: commentId,
-        },
+          id: commentId,
+          id_user: user.id // Ajoutez l'ID utilisateur pour la vérification
+        }
       });
       if (activeCommentTrack) {
         await fetchComments(activeCommentTrack);
       }
     } catch (error) {
       console.error("Erreur lors de la suppression du commentaire :", error);
+    }
+  };
+
+  const handleUpdateComment = async (trackId, commentId) => {
+    if (!user || !editedCommentText.trim()) return;
+  
+    try {
+      await axios.put('/comment/update', {
+        id: commentId,
+        id_user: user.id,
+        contenu: editedCommentText,
+      });
+      
+      setEditingCommentId(null); // Quitte le mode édition
+      setEditedCommentText(""); // Réinitialise le texte
+      await fetchComments(trackId); // Rafraîchit les commentaires
+    } catch (error) {
+      console.error("Erreur lors de la modification du commentaire :", error);
+      alert("Vous ne pouvez modifier que vos propres commentaires !");
     }
   };
 
@@ -268,24 +292,63 @@ function Home() {
             <div className="comments-container">
               <div className="comments-list">
                 {trackComments.map(comment => (
-                  <div key={comment.id} className="comment">
-                    <div className="comment-header">
-                      <strong>{comment.user.name}</strong>
-                      <span className="comment-date">
-                        {new Date(comment.date).toLocaleString()}
-                      </span>
-                      {user?.id === comment.user.id && (
-                        <button 
-                          className="delete-comment-btn"
-                          onClick={() => handleDeleteComment(comment.id)}
-                        >
-                          Supprimer
-                        </button>
-                      )}
-                    </div>
-                    <div className="comment-content">{comment.content}</div>
-                  </div>
-                ))}
+  <div key={comment.id} className="comment">
+    <div className="comment-header">
+      <strong>{comment.user.name}</strong>
+      <span className="comment-date">
+        {new Date(comment.date).toLocaleString()}
+      </span>
+      {user?.id === comment.user.id && (
+        <div className="comment-actions">
+          {editingCommentId === comment.id ? (
+            <>
+              <button 
+                onClick={() => handleUpdateComment(track.id, comment.id)}
+                className="save-edit-btn"
+              >
+                ✔ Enregistrer
+              </button>
+              <button 
+                onClick={() => setEditingCommentId(null)}
+                className="cancel-edit-btn"
+              >
+                ✖ Annuler
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => {
+                  setEditingCommentId(comment.id);
+                  setEditedCommentText(comment.content);
+                }}
+                className="edit-comment-btn"
+              >
+                ✏ Modifier
+              </button>
+              <button 
+                onClick={() => handleDeleteComment(comment.id)}
+                className="delete-comment-btn"
+              >
+                🗑 Supprimer
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+
+    {editingCommentId === comment.id ? (
+      <textarea
+        value={editedCommentText}
+        onChange={(e) => setEditedCommentText(e.target.value)}
+        className="edit-comment-input"
+      />
+    ) : (
+      <div className="comment-content">{comment.content}</div>
+    )}
+  </div>
+))}
               </div>
 
               {user && (

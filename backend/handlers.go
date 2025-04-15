@@ -268,12 +268,12 @@ func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := db.Query(`
-        SELECT c.id_commentaire, c.contenu, c.date_commentaire, 
+        SELECT c.id, c.contenu, c.date_commentaire, 
                u.id as user_id, u.username as user_name
         FROM Commentaires c
-        JOIN users u ON c.id_user = u.id
+        JOIN  up_users u ON c.id_user = u.id
         WHERE c.id_track = $1
-        ORDER BY c.date_commentaire DESC
+        ORDER BY c.date_commentaire DESC;
     `, trackID)
 	if err != nil {
 		http.Error(w, "Error fetching comments", http.StatusInternalServerError)
@@ -308,8 +308,8 @@ func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
+		IdComment int `json:"id"`
 		IdUser    int `json:"id_user"`
-		IdComment int `json:"id_comment"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -317,13 +317,163 @@ func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifie que l'utilisateur est bien l'auteur du commentaire avant de supprimer
-	_, err := db.Exec(
-		"DELETE FROM Commentaires WHERE id_commentaire = $1 AND id_user = $2",
-		input.IdComment, input.IdUser,
-	)
+	// Vérification que l'utilisateur est bien l'auteur
+	var authorID int
+	err := db.QueryRow("SELECT id_user FROM Commentaires WHERE id = $1", input.IdComment).Scan(&authorID)
+	if err != nil {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	if authorID != input.IdUser {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM Commentaires WHERE id = $1", input.IdComment)
 	if err != nil {
 		http.Error(w, "Error deleting comment", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		IdComment int    `json:"id"`
+		IdUser    int    `json:"id_user"` // Pour vérifier que l'utilisateur est bien l'auteur
+		Contenu   string `json:"contenu"` // Nouveau contenu
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	// Vérifie que l'utilisateur est bien l'auteur du commentaire
+	var authorID int
+	err := db.QueryRow("SELECT id_user FROM Commentaires WHERE id = $1", input.IdComment).Scan(&authorID)
+	if err != nil {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	if authorID != input.IdUser {
+		http.Error(w, "Unauthorized: You can only edit your own comments", http.StatusUnauthorized)
+		return
+	}
+
+	// Met à jour le commentaire
+	_, err = db.Exec(
+		"UPDATE Commentaires SET contenu = $1, date_commentaire = NOW() WHERE id = $2",
+		input.Contenu, input.IdComment,
+	)
+	if err != nil {
+		http.Error(w, "Error updating comment", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func AddResponseHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		IdUser    int    `json:"id_user"`
+		IdComment int    `json:"id_comment"`
+		Contenu   string `json:"contenu"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec(
+		"INSERT INTO Responses (id_user, id_comment, contenu, date_response) VALUES ($1, $2, $3, NOW())",
+		input.IdUser, input.IdComment, input.Contenu,
+	)
+	if err != nil {
+		http.Error(w, "Error adding response", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func GetResponsesHandler(w http.ResponseWriter, r *http.Request) {
+	commentID := r.URL.Query().Get("comment_id")
+	if commentID == "" {
+		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := db.Query(`
+        SELECT r.id, r.contenu, r.date_response, 
+               u.id as user_id, u.username as user_name
+        FROM Responses r
+        JOIN up_users u ON r.id_user = u.id
+        WHERE r.id_comment = $1
+        ORDER BY r.date_response ASC
+    `, commentID)
+	if err != nil {
+		http.Error(w, "Error fetching responses", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var responses []map[string]interface{}
+	for rows.Next() {
+		var idResponse, userID int
+		var contenu, dateResponse, userName string
+
+		if err := rows.Scan(&idResponse, &contenu, &dateResponse, &userID, &userName); err != nil {
+			http.Error(w, "Error reading response", http.StatusInternalServerError)
+			return
+		}
+
+		responses = append(responses, map[string]interface{}{
+			"id":      idResponse,
+			"content": contenu,
+			"date":    dateResponse,
+			"user": map[string]interface{}{
+				"id":   userID,
+				"name": userName,
+			},
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responses)
+}
+
+func DeleteResponseHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		IdResponse int `json:"id"`
+		IdUser     int `json:"id_user"` // Pour vérifier l'auteur
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	// Vérifie que l'utilisateur est bien l'auteur
+	var authorID int
+	err := db.QueryRow("SELECT id_user FROM Responses WHERE id = $1", input.IdResponse).Scan(&authorID)
+	if err != nil {
+		http.Error(w, "Response not found", http.StatusNotFound)
+		return
+	}
+
+	if authorID != input.IdUser {
+		http.Error(w, "Unauthorized: You can only delete your own responses", http.StatusUnauthorized)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM Responses WHERE id = $1", input.IdResponse)
+	if err != nil {
+		http.Error(w, "Error deleting response", http.StatusInternalServerError)
 		return
 	}
 

@@ -14,6 +14,10 @@ export default defineConfig({
       '/comment': 'http://localhost:8080',
       '/comments': 'http://localhost:8080',
       '/comment/delete': 'http://localhost:8080',
+      '/comment/update': 'http://localhost:8080',
+      "/response/add": 'http://localhost:8080',
+      "/response/delete": 'http://localhost:8080',
+      "/response/get": 'http://localhost:8080',
     }
   }
 })
