@@ -404,7 +404,7 @@ func AddResponseHandler(w http.ResponseWriter, r *http.Request) {
 func GetResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	commentID := r.URL.Query().Get("comment_id")
 	if commentID == "" {
-		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		json.NewEncoder(w).Encode([]interface{}{})
 		return
 	}
 
@@ -443,6 +443,10 @@ func GetResponsesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	if responses == nil {
+		responses = []map[string]interface{}{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responses)
 }
@@ -474,6 +478,62 @@ func DeleteResponseHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = db.Exec("DELETE FROM Responses WHERE id = $1", input.IdResponse)
 	if err != nil {
 		http.Error(w, "Error deleting response", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func GetResponseCountHandler(w http.ResponseWriter, r *http.Request) {
+	commentID := r.URL.Query().Get("comment_id")
+	if commentID == "" {
+		http.Error(w, "Comment ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM Responses WHERE id_comment = $1", commentID).Scan(&count)
+	if err != nil {
+		http.Error(w, "Error counting responses", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"count": count,
+	})
+}
+
+func UpdateResponseHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		IdResponse int    `json:"id"`
+		IdUser     int    `json:"id_user"`
+		Contenu    string `json:"contenu"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	// Vérifie que l'utilisateur est bien l'auteur de la réponse
+	var authorID int
+	err := db.QueryRow("SELECT id_user FROM Responses WHERE id = $1", input.IdResponse).Scan(&authorID)
+	if err != nil {
+		http.Error(w, "Response not found", http.StatusNotFound)
+		return
+	}
+
+	if authorID != input.IdUser {
+		http.Error(w, "Unauthorized: You can only edit your own responses", http.StatusUnauthorized)
+		return
+	}
+
+	_, err = db.Exec(
+		"UPDATE Responses SET contenu = $1, date_response = NOW() WHERE id = $2",
+		input.Contenu, input.IdResponse,
+	)
+	if err != nil {
+		http.Error(w, "Error updating response", http.StatusInternalServerError)
 		return
 	}
 

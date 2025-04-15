@@ -24,6 +24,8 @@ func main() {
 	http.HandleFunc("/response/add", AddResponseHandler)
 	http.HandleFunc("/response/get", GetResponsesHandler)
 	http.HandleFunc("/response/delete", DeleteResponseHandler)
+	http.HandleFunc("/response/count", GetResponseCountHandler)
+	http.HandleFunc("/response/update", UpdateResponseHandler)
 
 	log.Println("Serveur lancé sur le port 8080 🚀")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

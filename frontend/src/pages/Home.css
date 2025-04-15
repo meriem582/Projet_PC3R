@@ -213,7 +213,7 @@
 }
 
 .comment {
-  background: #f8f8f8;
+  background: #333;
   border-radius: 5px;
   padding: 10px;
   margin-bottom: 10px;
@@ -269,4 +269,74 @@
 .add-comment button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+
+
+.edit-response-btn, .delete-response-btn,
+.save-edit-btn, .cancel-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8em;
+  padding: 2px 5px;
+}
+
+.edit-response-btn {
+  color: #4CAF50;
+}
+
+.delete-response-btn {
+  color: #ff4d4d;
+}
+
+.save-edit-btn {
+  color: #4CAF50;
+}
+
+.cancel-edit-btn {
+  color: #ff4d4d;
+}
+
+
+
+.responses-section {
+  margin-top: 15px;
+  padding-left: 20px;
+  border-left: 2px solid #eee;
+}
+
+.responses-container {
+  margin-top: 10px;
+}
+
+.response {
+  background: #000000;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.response-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+}
+
+.response-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 5px;
+}
+
+.edit-response-input {
+  width: 100%;
+  min-height: 60px;
+  margin-top: 5px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
 }

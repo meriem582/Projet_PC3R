@@ -18,6 +18,8 @@ export default defineConfig({
       "/response/add": 'http://localhost:8080',
       "/response/delete": 'http://localhost:8080',
       "/response/get": 'http://localhost:8080',
+      "/response/count": 'http://localhost:8080',
+      "/response/update": 'http://localhost:8080',
     }
   }
 })
