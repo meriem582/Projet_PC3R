@@ -55,9 +55,13 @@ type Chart struct {
 	ExplicitLyrics bool   `json:"explicit_lyrics"`
 	Artist         struct {
 		ID int `json:"id"`
+		Name string `json:"name"`
+		Link string `json:"link"`
+		Picture string `json:"picture"`
 	} `json:"artist"`
 	Album struct {
 		ID int `json:"id"`
+		Title string `json:"title"`
 	} `json:"album"`
 }
 
@@ -107,10 +111,10 @@ func insertGenre(db *sql.DB, genre Genre) {
 }
 
 func insertChart(db *sql.DB, chart Chart) {
-	query := `INSERT INTO "charts" (id_chart, title, link, preview, explicit_lyrics, id_artist, id_album) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7) 
+	query := `INSERT INTO "charts" (id_chart, title, link, preview, explicit_lyrics, id_artist, id_album, nom_artist, picture_artist, link_artist, nom_album) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
 	          ON CONFLICT (id_chart) DO NOTHING;`
-	_, err := db.Exec(query, chart.ID, chart.Title, chart.Link, chart.Preview, chart.ExplicitLyrics, chart.Artist.ID, chart.Album.ID)
+	_, err := db.Exec(query, chart.ID, chart.Title, chart.Link, chart.Preview, chart.ExplicitLyrics, chart.Artist.ID, chart.Album.ID, chart.Artist.Name, chart.Artist.Picture, chart.Artist.Link, chart.Album.Title)
 	if err != nil {
 		log.Printf("Erreur insertion chart %d: %v", chart.ID, err)
 	}

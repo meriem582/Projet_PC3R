@@ -4,7 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import PrivateRoute from './PrivateRoute';
-import { AuthContext } from './AuthContext';
+import { AuthContext } from './context/AuthContext';
 
 function App() {
   const { user, login, logout } = useContext(AuthContext);
