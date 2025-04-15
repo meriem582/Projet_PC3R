@@ -18,14 +18,51 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	searchType := r.URL.Query().Get("type") // "artist", "track" ou "album"
+	if searchType == "" {
+		searchType = "artist" // Par défaut, recherche par artiste
+	}
+
 	query = "%" + strings.ToLower(query) + "%"
 
-	rows, err := db.Query(`
-		SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link,a.picture AS artist_picture,a.nb_album AS artist_nb_album,a.nb_fans AS artist_nb_fans,
-		t.title AS track_title, t.link AS track_link, t.preview AS track_preview 
-		FROM artists AS a JOIN tracks AS t ON t.id_artist = a.id_artist WHERE LOWER(a.name) LIKE $1`, query)
+	var rows *sql.Rows
+	var err error
+
+	switch searchType {
+	case "track":
+		rows, err = db.Query(`
+            SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
+                   a.nb_album AS artist_nb_album, a.nb_fans AS artist_nb_fans,
+                   t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
+                   al.title AS album_title, al.cover AS album_cover
+            FROM artists AS a 
+            JOIN tracks AS t ON t.id_artist = a.id_artist
+            LEFT JOIN albums AS al ON t.id_album = al.id_album
+            WHERE LOWER(t.title) LIKE $1`, query)
+	case "album":
+		rows, err = db.Query(`
+            SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
+                   a.nb_album AS artist_nb_album, a.nb_fans AS artist_nb_fans,
+                   t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
+                   al.title AS album_title, al.cover AS album_cover
+            FROM artists AS a 
+            JOIN tracks AS t ON t.id_artist = a.id_artist
+            JOIN albums AS al ON t.id_album = al.id_album
+            WHERE LOWER(al.title) LIKE $1`, query)
+	default: // artist
+		rows, err = db.Query(`
+            SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
+                   a.nb_album AS artist_nb_album, a.nb_fans AS artist_nb_fans,
+                   t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
+                   al.title AS album_title, al.cover AS album_cover
+            FROM artists AS a 
+            JOIN tracks AS t ON t.id_artist = a.id_artist
+            LEFT JOIN albums AS al ON t.id_album = al.id_album
+            WHERE LOWER(a.name) LIKE $1`, query)
+	}
+
 	if err != nil {
-		http.Error(w, "Erreur lors de la recherche", http.StatusInternalServerError)
+		http.Error(w, "Erreur lors de la recherche: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -33,13 +70,23 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	var results []map[string]interface{}
 
 	for rows.Next() {
-		var id, nb_album, nb_fans int
-		var name, picture, link, title, track_link, preview string
-		if err := rows.Scan(&id, &name, &link, &picture, &nb_album, &nb_fans, &title, &track_link, &preview); err != nil {
-			http.Error(w, "Erreur lecture résultat", http.StatusInternalServerError)
+		var (
+			id, nb_album, nb_fans                           int
+			name, picture, link, title, track_link, preview string
+			album_title, album_cover                        sql.NullString // Utilisation de NullString pour gérer les valeurs NULL
+		)
+
+		// Assurez-vous que l'ordre des colonnes correspond à votre requête SQL
+		if err := rows.Scan(
+			&id, &name, &link, &picture, &nb_album, &nb_fans,
+			&title, &track_link, &preview,
+			&album_title, &album_cover,
+		); err != nil {
+			http.Error(w, "Erreur lecture résultat: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		results = append(results, map[string]interface{}{
+
+		result := map[string]interface{}{
 			"id":       id,
 			"name":     name,
 			"picture":  picture,
@@ -51,7 +98,20 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 				"link":    track_link,
 				"preview": preview,
 			},
-		})
+		}
+
+		// Ajouter les infos de l'album si disponibles
+		if album_title.Valid {
+			albumInfo := map[string]interface{}{
+				"title": album_title.String,
+			}
+			if album_cover.Valid {
+				albumInfo["cover"] = album_cover.String
+			}
+			result["album"] = albumInfo
+		}
+
+		results = append(results, result)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

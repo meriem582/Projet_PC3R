@@ -335,38 +335,38 @@ function Home() {
     );
   };
 
-  // Fonction de recherche
-  const handleSearch = async (query) => {
+  const handleSearch = async (query, searchType = "artist") => {
     if (!query) return;
     try {
-      const response = await axios.get(`/search?q=${encodeURIComponent(query)}`);
-      
-      // Normaliser les résultats pour avoir toujours une structure cohérente
-      const normalizedResults = response.data.map(item => ({
-        ...item,
-        track: {
-          ...item.track,
-          id: item.track?.id || generateTempId(), // Garantir un ID de track
-          artistId: item.id // ID de l'artiste
-        }
-      })).filter(item => item.track); // Filtrer les items sans track
+        const response = await axios.get(`/search?q=${encodeURIComponent(query)}&type=${searchType}`);
+        
+        // Normaliser les résultats
+        const normalizedResults = response.data.map(item => ({
+            ...item,
+            track: {
+                ...item.track,
+                id: item.track?.id || generateTempId(),
+                artistId: item.id
+            },
+            album: item.album || null // Ajouter les infos de l'album si disponibles
+        })).filter(item => item.track);
 
-      setResults(normalizedResults);
+        setResults(normalizedResults);
 
-      // Charger les likes pour chaque track
-      const likePromises = normalizedResults.map(async (item) => {
-        const info = await fetchLikeInfo(item.track.id);
-        return { trackId: item.track.id, info };
-      });
-      
-      const resultsWithLikes = await Promise.all(likePromises);
-      const newLikesData = {};
-      resultsWithLikes.forEach(({ trackId, info }) => newLikesData[trackId] = info);
-      setLikesData(prev => ({ ...prev, ...newLikesData }));
+        // Charger les likes pour chaque track
+        const likePromises = normalizedResults.map(async (item) => {
+            const info = await fetchLikeInfo(item.track.id);
+            return { trackId: item.track.id, info };
+        });
+        
+        const resultsWithLikes = await Promise.all(likePromises);
+        const newLikesData = {};
+        resultsWithLikes.forEach(({ trackId, info }) => newLikesData[trackId] = info);
+        setLikesData(prev => ({ ...prev, ...newLikesData }));
     } catch (error) {
-      console.error('Erreur lors de la recherche :', error);
+        console.error('Erreur lors de la recherche :', error);
     }
-  };
+};
 
   // Rendu des cartes
   const renderCard = (item, index, isChart = false) => {
@@ -400,13 +400,18 @@ function Home() {
           <div className="artist-name">{track.artistName}</div>
         </div>
         
-        <div className="track-info">
-          Écoutez le dernier titre de <strong>{track.artistName}</strong> : <em>"{track.title}"</em>
-          <br />
-          <a href={track.link} target="_blank" rel="noopener noreferrer" className="deezer-link">
-            🎧 Écouter sur Deezer
-          </a>
-        </div>
+          <div className="track-info">
+              {item.album && (
+                  <div className="album-info">
+                      Album: <strong>{item.album.title}</strong>
+                  </div>
+              )}
+              Écoutez le titre <em>"{track.title}"</em> de <strong>{track.artistName}</strong>
+              <br />
+              <a href={track.link} target="_blank" rel="noopener noreferrer" className="deezer-link">
+                  🎧 Écouter sur Deezer
+              </a>
+          </div>
 
         <div
           className={`image-container ${currentTrack === track.preview ? 'active' : ''}`}

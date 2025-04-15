@@ -54,13 +54,13 @@ type Chart struct {
 	Preview        string `json:"preview"`
 	ExplicitLyrics bool   `json:"explicit_lyrics"`
 	Artist         struct {
-		ID int `json:"id"`
-		Name string `json:"name"`
-		Link string `json:"link"`
+		ID      int    `json:"id"`
+		Name    string `json:"name"`
+		Link    string `json:"link"`
 		Picture string `json:"picture"`
 	} `json:"artist"`
 	Album struct {
-		ID int `json:"id"`
+		ID    int    `json:"id"`
 		Title string `json:"title"`
 	} `json:"album"`
 }
@@ -298,19 +298,43 @@ func fetchArtistIdFromDB(db *sql.DB) ([]int, error) {
 
 // Récupérer les tracks d'un album et les insérer
 func fetchAndInsertTracksByAlbum(db *sql.DB, albumID int) {
+	// D'abord vérifier si l'album existe dans votre base
+	var exists bool
+	err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM albums WHERE id_album = $1)`, albumID).Scan(&exists)
+	if err != nil || !exists {
+		log.Printf("Album %d n'existe pas, skip des tracks", albumID)
+		return
+	}
+
 	var response struct {
 		Data []Track `json:"data"`
 	}
 
-	// Appel de l'API Deezer pour récupérer les tracks de l'album
 	url := fmt.Sprintf("https://api.deezer.com/album/%d/tracks", albumID)
 	if err := fetchDeezerData(url, &response); err != nil {
 		log.Printf("Erreur fetch tracks pour l'album %d: %v", albumID, err)
 		return
 	}
 
-	// Insérer les tracks dans la base de données
 	for _, track := range response.Data {
+		// Ne pas insérer si l'ID d'album est 0 ou invalide
+		if track.Album.ID <= 0 {
+			track.Album.ID = albumID // Forcer l'ID d'album correct
+		}
+
+		// Vérifier aussi l'artiste
+		if track.Artist.ID <= 0 {
+			// Récupérer l'artiste depuis l'album si possible
+			var artistID int
+			err := db.QueryRow(`SELECT id_artist FROM albums WHERE id_album = $1`, albumID).Scan(&artistID)
+			if err == nil {
+				track.Artist.ID = artistID
+			} else {
+				log.Printf("Impossible de trouver l'artiste pour l'album %d: %v", albumID, err)
+				continue // Skip cette track
+			}
+		}
+
 		insertTrack(db, track)
 	}
 }
