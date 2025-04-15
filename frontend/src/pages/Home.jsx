@@ -20,10 +20,8 @@ function Home() {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedCommentText, setEditedCommentText] = useState("");
 
-  // Fonction pour générer un ID temporaire si nécessaire
   const generateTempId = () => Math.floor(Math.random() * 1000000);
 
-  // Fonctions pour les likes
   const fetchLikeInfo = async (trackId) => {
     if (!user) return { like_count: 0, user_liked: false };
     
@@ -74,7 +72,7 @@ function Home() {
     try {
       await axios.post('/comment', {
         id_user: user.id,
-        id_track: trackId, // Bien utiliser l'ID de la track
+        id_track: trackId, 
         contenu: commentText,
       });
       
@@ -124,7 +122,6 @@ function Home() {
     }
   };
 
-  // Composant ResponseSection
   const ResponseSection = ({ comment, trackId }) => {
     const [responses, setResponses] = useState([]);
     const [showResponses, setShowResponses] = useState(true);
@@ -334,21 +331,37 @@ function Home() {
       </div>
     );
   };
+  const [searchPerformed, setSearchPerformed] = useState(false);
+  const [showNoResultsMessage, setShowNoResultsMessage] = useState(false);
 
   const handleSearch = async (query, searchType = "artist") => {
-    if (!query) return;
+    setSearchPerformed(true);
+    setShowNoResultsMessage(true); 
+    
+    if (!query) {
+        setResults([]);
+        return;
+    }
+
     try {
         const response = await axios.get(`/search?q=${encodeURIComponent(query)}&type=${searchType}`);
         
-        // Normaliser les résultats
-        const normalizedResults = response.data.map(item => ({
+       if (!response.data?.results?.length) {
+            setResults([]);
+            const timer = setTimeout(() => {
+                setShowNoResultsMessage(false);
+            }, 30000);
+            return () => clearTimeout(timer); 
+        }
+
+        const normalizedResults = response.data.results.map(item => ({
             ...item,
             track: {
                 ...item.track,
                 id: item.track?.id || generateTempId(),
                 artistId: item.id
             },
-            album: item.album || null // Ajouter les infos de l'album si disponibles
+            album: item.album || null
         })).filter(item => item.track);
 
         setResults(normalizedResults);
@@ -363,17 +376,22 @@ function Home() {
         const newLikesData = {};
         resultsWithLikes.forEach(({ trackId, info }) => newLikesData[trackId] = info);
         setLikesData(prev => ({ ...prev, ...newLikesData }));
+
+	 setShowNoResultsMessage(false);
     } catch (error) {
-        console.error('Erreur lors de la recherche :', error);
+        setResults([]);
+        const timer = setTimeout(() => {
+            setShowNoResultsMessage(false);
+        }, 30000);
+        return () => clearTimeout(timer);
     }
 };
 
   // Rendu des cartes
   const renderCard = (item, index, isChart = false) => {
-    // Structure cohérente pour les tracks
     const track = isChart
       ? {
-          id: item.id_chart, // ID de la track pour les charts
+          id: item.id_chart, 
           title: item.title,
           preview: item.preview,
           link: item.link,
@@ -382,7 +400,7 @@ function Home() {
           picture: item.picture_artist
         }
       : {
-          id: item.track.id, // ID de la track pour les résultats de recherche
+          id: item.track.id,
           title: item.track.title,
           preview: item.track.preview,
           link: item.track.link,
@@ -624,6 +642,11 @@ function Home() {
     <div className="page-wrapper">
       <div className="content-wrapper">
         <SearchBar onSearch={handleSearch} />
+        {showNoResultsMessage && results.length === 0 && (
+                    <div className="search-message">
+                        Aucun résultat trouvé pour votre recherche
+                    </div>
+                )}
 
         {results.length > 0 ? (
           <>

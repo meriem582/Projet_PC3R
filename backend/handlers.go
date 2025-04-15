@@ -14,7 +14,11 @@ var db *sql.DB
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		http.Error(w, "Paramètre de recherche manquant (?q=...)", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Veuillez entrer un terme de recherche",
+			"results": []interface{}{},
+		})
 		return
 	}
 
@@ -59,7 +63,11 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		http.Error(w, "Erreur lors de la recherche: "+err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Une erreur est survenue lors de la recherche",
+			"results": []interface{}{},
+		})
 		return
 	}
 	defer rows.Close()
@@ -106,8 +114,20 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		results = append(results, result)
 	}
 
+	if len(results) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Aucun résultat trouvé",
+			"results": []interface{}{},
+		})
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Résultats de la recherche",
+		"results": results,
+	})
 }
 
 func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
