@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import SearchBar from '../components/SearchBar';
+import SearchBar from './SearchBar';
 import axios from 'axios';
 import './Home.css';
 
@@ -19,6 +19,8 @@ function Home() {
   const [activeCommentTrack, setActiveCommentTrack] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editedCommentText, setEditedCommentText] = useState("");
+  const [searchPerformed, setSearchPerformed] = useState(false);
+  const [showNoResultsMessage, setShowNoResultsMessage] = useState(false);
 
   const generateTempId = () => Math.floor(Math.random() * 1000000);
 
@@ -54,7 +56,6 @@ function Home() {
     }
   };
 
-  // Fonctions pour les commentaires
   const fetchComments = async (trackId) => {
     try {
       const response = await axios.get(`/comments?track_id=${trackId}`);
@@ -124,7 +125,7 @@ function Home() {
 
   const ResponseSection = ({ comment, trackId }) => {
     const [responses, setResponses] = useState([]);
-    const [showResponses, setShowResponses] = useState(true);
+    const [showResponses, setShowResponses] = useState(false);
     const [responseInputs, setResponseInputs] = useState({});
     const [isLoadingResponses, setIsLoadingResponses] = useState(false);
     const [responseCount, setResponseCount] = useState(0);
@@ -212,23 +213,29 @@ function Home() {
             setShowResponses(!showResponses);
           }}
         >
-          {showResponses ? 'Masquer les réponses' : `Afficher les réponses (${responseCount})`}
+          {showResponses ? (
+            <span>▼ Masquer les réponses</span>
+          ) : (
+            <span>▶ Afficher les réponses ({responseCount})</span>
+          )}
         </button>
 
         {showResponses && (
           <div className="responses-container" onClick={(e) => e.stopPropagation()}>
             {isLoadingResponses ? (
-              <div>Chargement des réponses...</div>
+              <div className="loading-spinner">Chargement...</div>
             ) : (
               <>
                 {responses.length > 0 ? (
                   responses.map(response => (
                     <div key={response.id} className="response">
                       <div className="response-header">
-                        <strong>{response.user.name}</strong>
-                        <span className="response-date">
-                          {new Date(response.date).toLocaleString()}
-                        </span>
+                        <div className="response-user">
+                          <span className="response-username">{response.user.name}</span>
+                          <span className="response-date">
+                            {new Date(response.date).toLocaleString()}
+                          </span>
+                        </div>
                         {user?.id === response.user.id && (
                           <div className="response-actions">
                             {editingResponseId === response.id ? (
@@ -240,7 +247,7 @@ function Home() {
                                   }}
                                   className="save-edit-btn"
                                 >
-                                  ✔ Enregistrer
+                                  Enregistrer
                                 </button>
                                 <button 
                                   onClick={(e) => {
@@ -249,7 +256,7 @@ function Home() {
                                   }}
                                   className="cancel-edit-btn"
                                 >
-                                  ✖ Annuler
+                                  Annuler
                                 </button>
                               </>
                             ) : (
@@ -262,7 +269,7 @@ function Home() {
                                   }}
                                   className="edit-response-btn"
                                 >
-                                  ✏ Modifier
+                                  Modifier
                                 </button>
                                 <button 
                                   onClick={(e) => {
@@ -278,7 +285,7 @@ function Home() {
                                   }}
                                   className="delete-response-btn"
                                 >
-                                  🗑 Supprimer
+                                  Supprimer
                                 </button>
                               </>
                             )}
@@ -319,8 +326,9 @@ function Home() {
                         handleAddResponse();
                       }}
                       disabled={!responseInputs[comment.id]?.trim()}
+                      className="send-response-btn"
                     >
-                      Envoyer la réponse
+                      Envoyer
                     </button>
                   </div>
                 )}
@@ -331,8 +339,6 @@ function Home() {
       </div>
     );
   };
-  const [searchPerformed, setSearchPerformed] = useState(false);
-  const [showNoResultsMessage, setShowNoResultsMessage] = useState(false);
 
   const handleSearch = async (query, searchType = "artist") => {
     setSearchPerformed(true);
@@ -366,7 +372,6 @@ function Home() {
 
         setResults(normalizedResults);
 
-        // Charger les likes pour chaque track
         const likePromises = normalizedResults.map(async (item) => {
             const info = await fetchLikeInfo(item.track.id);
             return { trackId: item.track.id, info };
@@ -377,7 +382,7 @@ function Home() {
         resultsWithLikes.forEach(({ trackId, info }) => newLikesData[trackId] = info);
         setLikesData(prev => ({ ...prev, ...newLikesData }));
 
-	 setShowNoResultsMessage(false);
+        setShowNoResultsMessage(false);
     } catch (error) {
         setResults([]);
         const timer = setTimeout(() => {
@@ -385,9 +390,8 @@ function Home() {
         }, 30000);
         return () => clearTimeout(timer);
     }
-};
+  };
 
-  // Rendu des cartes
   const renderCard = (item, index, isChart = false) => {
     const track = isChart
       ? {
@@ -413,173 +417,208 @@ function Home() {
     const trackComments = comments[track.id] || [];
 
     return (
-      <div className="watch-card" key={`${track.id}-${index}`}>
-        <div className="watch-card-header">
-          <div className="artist-name">{track.artistName}</div>
+      <div className="music-card" key={`${track.id}-${index}`}>
+        <div className="card-header">
+          <div className="artist-info">
+            <h3 className="artist-name">{track.artistName}</h3>
+            <p className="track-title">{track.title}</p>
+          </div>
         </div>
         
-          <div className="track-info">
-              {item.album && (
-                  <div className="album-info">
-                      Album: <strong>{item.album.title}</strong>
-                  </div>
-              )}
-              Écoutez le titre <em>"{track.title}"</em> de <strong>{track.artistName}</strong>
-              <br />
-              <a href={track.link} target="_blank" rel="noopener noreferrer" className="deezer-link">
-                  🎧 Écouter sur Deezer
-              </a>
+        <div className="card-content">
+          <div className="track-details">
+            {item.album && (
+              <div className="album-info">
+                <span className="detail-label">Album:</span> {item.album.title}
+              </div>
+            )}
+            <a href={track.link} target="_blank" rel="noopener noreferrer" className="deezer-link">
+              Écouter sur Deezer
+            </a>
           </div>
 
-        <div
-          className={`image-container ${currentTrack === track.preview ? 'active' : ''}`}
-          onMouseEnter={() => setCurrentTrack(track.preview)}
-          onMouseLeave={() => !isPlaying && setCurrentTrack(null)}
-        >
-          <img src={track.picture} alt={track.artistName} className="artist-image" />
+          <div 
+            className={`track-image-container ${currentTrack === track.preview ? 'active' : ''}`}
+            onMouseEnter={() => setCurrentTrack(track.preview)}
+            onMouseLeave={() => !isPlaying && setCurrentTrack(null)}
+          >
+            <img src={track.picture} alt={track.artistName} className="artist-image" />
+            
+            {track.preview && (
+              <div className="audio-controls">
+                <button
+                  className={`play-button ${isPlaying && currentTrack === track.preview ? 'playing' : ''}`}
+                  onClick={() => togglePlay(track.preview)}
+                >
+                  {isPlaying && currentTrack === track.preview ? (
+                    <i className="icon-pause"></i>
+                  ) : (
+                    <i className="icon-play"></i>
+                  )}
+                </button>
 
-          {track.preview && (
-            <>
-              <button
-                className="custom-play-button"
-                onClick={() => togglePlay(track.preview)}
-              >
-                {currentTrack === track.preview && isPlaying ? '❚❚' : '▶'}
-              </button>
+                {currentTrack === track.preview && (
+                  <div className="audio-player">
+                    <audio
+                      ref={audioRef}
+                      src={currentTrack}
+                      controls
+                      onPause={() => setIsPlaying(false)}
+                      onPlay={() => setIsPlaying(true)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-              {currentTrack === track.preview && (
-                <div className="audio-bar">
-                  <audio
-                    ref={audioRef}
-                    src={currentTrack}
-                    controls
-                    onPause={() => setIsPlaying(false)}
-                    onPlay={() => setIsPlaying(true)}
-                  />
-                </div>
+        <div className="card-footer">
+          <div className="like-section">
+            <button
+              className={`like-button ${likeInfo.user_liked ? 'liked' : ''}`}
+              onClick={() => toggleLike(track.id)}
+            >
+              <span className="like-icon">❤️</span>
+              <span className="like-count">{likeInfo.like_count}</span>
+              <span className="like-text">{likeInfo.user_liked ? 'Retirer' : 'Liker'}</span>
+            </button>
+          </div>
+
+          <div className="comments-section">
+            <button 
+              className="toggle-comments-btn"
+              onClick={() => {
+                setActiveCommentTrack(activeCommentTrack === track.id ? null : track.id);
+                if (activeCommentTrack !== track.id && !comments[track.id]) {
+                  fetchComments(track.id);
+                }
+              }}
+            >
+              {activeCommentTrack === track.id ? (
+                <span>▼ Masquer les commentaires</span>
+              ) : (
+                <span>▶ Afficher les commentaires ({trackComments.length})</span>
               )}
-            </>
-          )}
-        </div>
+            </button>
 
-        <div className="like-section">
-          <div className="like-count">❤️ {likeInfo.like_count}</div>
-          <button
-            className={`like-button ${likeInfo.user_liked ? 'liked' : ''}`}
-            onClick={() => toggleLike(track.id)}
-          >
-            {likeInfo.user_liked ? '💔 Retirer le like' : '❤️ Liker'}
-          </button>
-        </div>
-
-        <div className="comments-section">
-          <button 
-            className="toggle-comments-btn"
-            onClick={() => {
-              setActiveCommentTrack(activeCommentTrack === track.id ? null : track.id);
-              if (activeCommentTrack !== track.id && !comments[track.id]) {
-                fetchComments(track.id);
-              }
-            }}
-          >
-            {activeCommentTrack === track.id ? 'Masquer les commentaires' : 'Afficher les commentaires'}
-          </button>
-
-          {activeCommentTrack === track.id && (
-            <div className="comments-container">
-              <div className="comments-list">
-                {trackComments.map(comment => (
-                  <div key={comment.id} className="comment">
-                    <div className="comment-header">
-                      <strong>{comment.user.name}</strong>
-                      <span className="comment-date">
-                        {new Date(comment.date).toLocaleString()}
-                      </span>
-                      {user?.id === comment.user.id && (
-                        <div className="comment-actions">
-                          {editingCommentId === comment.id ? (
-                            <>
-                              <button 
-                                onClick={() => handleUpdateComment(track.id, comment.id)}
-                                className="save-edit-btn"
-                              >
-                                ✔ Enregistrer
-                              </button>
-                              <button 
-                                onClick={() => setEditingCommentId(null)}
-                                className="cancel-edit-btn"
-                              >
-                                ✖ Annuler
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button 
-                                onClick={() => {
-                                  setEditingCommentId(comment.id);
-                                  setEditedCommentText(comment.content);
-                                }}
-                                className="edit-comment-btn"
-                              >
-                                ✏ Modifier
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  if (window.confirm("Supprimer ce commentaire ?")) {
-                                    handleDeleteComment(comment.id, track.id);
-                                  }
-                                }}
-                                className="delete-comment-btn"
-                              >
-                                🗑 Supprimer
-                              </button>
-                            </>
+            {activeCommentTrack === track.id && (
+              <div className="comments-container">
+                <div className="comments-list">
+                  {trackComments.length > 0 ? (
+                    trackComments.map(comment => (
+                      <div key={comment.id} className="comment">
+                        <div className="comment-header">
+                          <div className="comment-user">
+                            <span className="comment-username">{comment.user.name}</span>
+                            <span className="comment-date">
+                              {new Date(comment.date).toLocaleString()}
+                            </span>
+                          </div>
+                          {user?.id === comment.user.id && (
+                            <div className="comment-actions">
+                              {editingCommentId === comment.id ? (
+                                <>
+                                  <button 
+                                    onClick={() => handleUpdateComment(track.id, comment.id)}
+                                    className="save-edit-btn"
+                                  >
+                                    Enregistrer
+                                  </button>
+                                  <button 
+                                    onClick={() => setEditingCommentId(null)}
+                                    className="cancel-edit-btn"
+                                  >
+                                    Annuler
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button 
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id);
+                                      setEditedCommentText(comment.content);
+                                    }}
+                                    className="edit-comment-btn"
+                                  >
+                                    Modifier
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      if (window.confirm("Supprimer ce commentaire ?")) {
+                                        handleDeleteComment(comment.id, track.id);
+                                      }
+                                    }}
+                                    className="delete-comment-btn"
+                                  >
+                                    Supprimer
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
 
-                    {editingCommentId === comment.id ? (
-                      <textarea
-                        value={editedCommentText}
-                        onChange={(e) => setEditedCommentText(e.target.value)}
-                        className="edit-comment-input"
-                      />
-                    ) : (
-                      <div className="comment-content">{comment.content}</div>
-                    )}
+                        {editingCommentId === comment.id ? (
+                          <textarea
+                            value={editedCommentText}
+                            onChange={(e) => setEditedCommentText(e.target.value)}
+                            className="edit-comment-input"
+                          />
+                        ) : (
+                          <div className="comment-content">{comment.content}</div>
+                        )}
 
-                    <ResponseSection comment={comment} trackId={track.id} />
-                  </div>
-                ))}
-              </div>
-
-              {user && (
-                <div className="add-comment">
-                  <textarea
-                    value={commentInputs[track.id] || ""}
-                    onChange={(e) => setCommentInputs({
-                      ...commentInputs,
-                      [track.id]: e.target.value
-                    })}
-                    placeholder="Ajouter un commentaire..."
-                  />
-                  <button 
-                    onClick={() => handleAddComment(track.id)}
-                    disabled={!commentInputs[track.id]?.trim()}
-                  >
-                    Envoyer
-                  </button>
+                        <ResponseSection comment={comment} trackId={track.id} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-comments">Aucun commentaire pour le moment</div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+
+                {user && (
+                  <div className="add-comment">
+                    <textarea
+                      value={commentInputs[track.id] || ""}
+                      onChange={(e) => setCommentInputs({
+                        ...commentInputs,
+                        [track.id]: e.target.value
+                      })}
+                      placeholder="Ajouter un commentaire..."
+                    />
+                    <button 
+                      onClick={() => handleAddComment(track.id)}
+                      disabled={!commentInputs[track.id]?.trim()}
+                      className="send-comment-btn"
+                    >
+                      Envoyer
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
-  // Chargement initial des données
+  const togglePlay = (previewUrl) => {
+    if (currentTrack === previewUrl) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(error => {
+          console.error("Erreur de lecture audio :", error);
+        });
+      }
+    } else {
+      setCurrentTrack(previewUrl);
+      setIsPlaying(true);
+    }
+  };
+
   useEffect(() => {
     const fetchCharts = async () => {
       try {
@@ -628,7 +667,6 @@ function Home() {
     fetchRandomTracks();
   }, []);
 
-  // Gestion de l'audio
   useEffect(() => {
     if (audioRef.current && isPlaying) {
       audioRef.current.play().catch(error => {
@@ -639,36 +677,42 @@ function Home() {
   }, [currentTrack, isPlaying]);
 
   return (
-    <div className="page-wrapper">
-      <div className="content-wrapper">
+    <div className="music-app">
+      <div className="app-container">
         <SearchBar onSearch={handleSearch} />
-        {showNoResultsMessage && results.length === 0 && (
-                    <div className="search-message">
-                        Aucun résultat trouvé pour votre recherche
-                    </div>
-                )}
+        
+        {showNoResultsMessage && results.length === 0 && searchPerformed && (
+          <div className="search-message">
+            <i className="icon-search"></i>
+            <p>Aucun résultat trouvé pour votre recherche</p>
+          </div>
+        )}
 
         {results.length > 0 ? (
           <>
             <button className="back-button" onClick={() => setResults([])}>
-              ⬅ Retour aux Charts
+              <i className="icon-arrow-left"></i> Retour aux Charts
             </button>
-            <div className="results">
+            <div className="cards-grid">
               {results.map((item, index) => renderCard(item, index))}
             </div>
           </>
         ) : (
           <>
-            <div className="charts">
-              <h2>🎵 Top Charts</h2>
-              <div className="chart-list">
+            <section className="charts-section">
+              <h2 className="section-title">
+              <i className="icon-music"></i> Top Charts
+              </h2>
+              <div className="cards-grid">
                 {charts.map((chart, index) => renderCard(chart, index, true))}
               </div>
-            </div>
+            </section>
 
-            <div className="random-tracks">
-              <h2>🎶 Morceaux recommandés</h2>
-              <div className="track-list">
+            <section className="recommendations-section">
+              <h2 className="section-title">
+                <i className="icon-music"></i> Morceaux recommandés
+              </h2>
+              <div className="cards-grid">
                 {tracks.map((track, index) => renderCard(track, index))}
               </div>
               <button
@@ -685,9 +729,9 @@ function Home() {
                     });
                 }}
               >
-                ➕ Charger plus
+                <i className="icon-plus"></i> Charger plus
               </button>
-            </div>
+            </section>
           </>
         )}
       </div>

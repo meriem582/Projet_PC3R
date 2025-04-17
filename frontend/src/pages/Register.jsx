@@ -115,7 +115,7 @@ function Register({ onRegister }) {
   return (
     <div className="register-container">
       <div className="register-header">
-        <h2 className="register-title">Rejoignez-nous</h2>
+        <h2 className="register-title">Rejoignez-nous à MerYouZik</h2>
         <p className="register-subtitle">Créez votre compte en quelques secondes</p>
       </div>
       
@@ -153,12 +153,13 @@ function Register({ onRegister }) {
               value={form.password} 
               onChange={handleChange} 
               required 
-              className="form-input"
+              className="form-input password-input"
             />
             <button 
               type="button" 
               className="password-toggle"
               onClick={toggleShowPassword}
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
             >
               {showPassword ? (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -185,12 +186,13 @@ function Register({ onRegister }) {
               value={form.confirmPassword} 
               onChange={handleChange} 
               required 
-              className="form-input"
+              className="form-input confirm-password-input"
             />
             <button 
               type="button" 
-              className="password-toggle"
+              className="password-toggle confirm-password-toggle"
               onClick={toggleShowConfirmPassword}
+              aria-label={showConfirmPassword ? "Masquer la confirmation" : "Afficher la confirmation"}
             >
               {showConfirmPassword ? (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -250,7 +252,7 @@ function Register({ onRegister }) {
           </div>
         </div>
 
-        <button type="submit" className="submit-button">
+        <button type="submit" className="submit-button" style={{background: '#9b09ff'}}>
           <span>S'inscrire</span>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
