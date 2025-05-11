@@ -11,6 +11,7 @@ import (
 // db est accessible globalement
 var db *sql.DB
 
+// handler pour la page d'accueil, pour récupérer les publications selon le type de recherche
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
@@ -81,7 +82,6 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 			album_title                                     sql.NullString // Utilisation de NullString pour gérer les valeurs NULL
 		)
 
-		// Assurez-vous que l'ordre des colonnes correspond à votre requête SQL
 		if err := rows.Scan(
 			&id, &name, &link, &picture,
 			&title, &track_link, &preview,
@@ -103,7 +103,6 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 
-		// Ajouter les infos de l'album si disponibles
 		if album_title.Valid {
 			albumInfo := map[string]interface{}{
 				"title": album_title.String,
@@ -130,6 +129,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handler pour récupérer les charts "TOP 10"
 func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(`
         SELECT id_chart, title, link, preview, 
@@ -176,7 +176,6 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// S'assurer qu'on renvoie toujours un tableau (même vide)
 	if charts == nil {
 		charts = []map[string]interface{}{}
 	}
@@ -185,6 +184,7 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(charts)
 }
 
+// handler pour récupérer les morceaux aléatoires avec pagination
 func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 	page := r.URL.Query().Get("page")
 	if page == "" {
@@ -235,6 +235,7 @@ func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(tracks)
 }
 
+// handler pour ajouter un like
 func AddLikeHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser  int `json:"id_user"`
@@ -259,6 +260,7 @@ func AddLikeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// handler pour supprimer un like
 func RemoveLikeHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser  int `json:"id_user"`
@@ -279,6 +281,7 @@ func RemoveLikeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// handler pour récupérer les informations de like (le nombre)
 func GetLikesInfoHandler(w http.ResponseWriter, r *http.Request) {
 	trackID := r.URL.Query().Get("track_id")
 	userID := r.URL.Query().Get("user_id")
@@ -302,8 +305,7 @@ func GetLikesInfoHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Ajoutez ces nouvelles fonctions handlers
-
+// handler pour ajouter un commentaire
 func AddCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser  int    `json:"id_user"`
@@ -328,6 +330,7 @@ func AddCommentHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// handler pour récupérer les commentaires d'un morceau
 func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	trackID := r.URL.Query().Get("track_id")
 	if trackID == "" {
@@ -374,6 +377,7 @@ func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(comments)
 }
 
+// handler pour supprimer un commentaire
 func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdComment int `json:"id"`
@@ -407,11 +411,12 @@ func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// handler pour mettre à jour un commentaire
 func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdComment int    `json:"id"`
-		IdUser    int    `json:"id_user"` // Pour vérifier que l'utilisateur est bien l'auteur
-		Contenu   string `json:"contenu"` // Nouveau contenu
+		IdUser    int    `json:"id_user"`
+		Contenu   string `json:"contenu"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -419,7 +424,6 @@ func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifie que l'utilisateur est bien l'auteur du commentaire
 	var authorID int
 	err := db.QueryRow("SELECT id_user FROM Commentaires WHERE id = $1", input.IdComment).Scan(&authorID)
 	if err != nil {
@@ -432,7 +436,6 @@ func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Met à jour le commentaire
 	_, err = db.Exec(
 		"UPDATE Commentaires SET contenu = $1, date_commentaire = NOW() WHERE id = $2",
 		input.Contenu, input.IdComment,
@@ -445,6 +448,7 @@ func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// handler pour ajouter une réponse à un commentaire
 func AddResponseHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser    int    `json:"id_user"`
@@ -469,6 +473,7 @@ func AddResponseHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// handler pour récupérer les réponses d'un commentaire
 func GetResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	commentID := r.URL.Query().Get("comment_id")
 	if commentID == "" {
@@ -519,10 +524,11 @@ func GetResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responses)
 }
 
+// handler pour supprimer une réponse
 func DeleteResponseHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdResponse int `json:"id"`
-		IdUser     int `json:"id_user"` // Pour vérifier l'auteur
+		IdUser     int `json:"id_user"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -530,7 +536,6 @@ func DeleteResponseHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifie que l'utilisateur est bien l'auteur
 	var authorID int
 	err := db.QueryRow("SELECT id_user FROM Responses WHERE id = $1", input.IdResponse).Scan(&authorID)
 	if err != nil {
@@ -552,6 +557,7 @@ func DeleteResponseHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// handler pour compter le nombre de réponses à un commentaire
 func GetResponseCountHandler(w http.ResponseWriter, r *http.Request) {
 	commentID := r.URL.Query().Get("comment_id")
 	if commentID == "" {
@@ -571,6 +577,7 @@ func GetResponseCountHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handler pour mettre à jour une réponse
 func UpdateResponseHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdResponse int    `json:"id"`
@@ -583,7 +590,6 @@ func UpdateResponseHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifie que l'utilisateur est bien l'auteur de la réponse
 	var authorID int
 	err := db.QueryRow("SELECT id_user FROM Responses WHERE id = $1", input.IdResponse).Scan(&authorID)
 	if err != nil {

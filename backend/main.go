@@ -6,21 +6,21 @@ import (
 )
 
 func main() {
-	// Initialise la variable globale db
+	// Connexion à la base de données
 	db = InitDB()
 	defer db.Close()
 
-	// Ici, on passe la fonction SearchHandler directement (sans l'appeler)
+	// les handlers pour les différentes routes de l'API REST 
 	http.HandleFunc("/search", SearchHandler)
 	http.HandleFunc("/charts", GetAllChartsHandler)
 	http.HandleFunc("/tracks", GetRandomTracksHandler)
-	http.HandleFunc("/like", AddLikeHandler)                 // POST
-	http.HandleFunc("/unlike", RemoveLikeHandler)            // DELETE
-	http.HandleFunc("/likes", GetLikesInfoHandler)           // GET avec
-	http.HandleFunc("/comment", AddCommentHandler)           // POST
-	http.HandleFunc("/comments", GetCommentsHandler)         // GET
-	http.HandleFunc("/comment/delete", DeleteCommentHandler) // DELETE
-	http.HandleFunc("/comment/update", UpdateCommentHandler) //update
+	http.HandleFunc("/like", AddLikeHandler)                 
+	http.HandleFunc("/unlike", RemoveLikeHandler)            
+	http.HandleFunc("/likes", GetLikesInfoHandler)           
+	http.HandleFunc("/comment", AddCommentHandler)           
+	http.HandleFunc("/comments", GetCommentsHandler)         
+	http.HandleFunc("/comment/delete", DeleteCommentHandler) 
+	http.HandleFunc("/comment/update", UpdateCommentHandler) 
 	http.HandleFunc("/response/add", AddResponseHandler)
 	http.HandleFunc("/response/get", GetResponsesHandler)
 	http.HandleFunc("/response/delete", DeleteResponseHandler)
