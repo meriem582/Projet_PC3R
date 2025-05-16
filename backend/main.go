@@ -28,6 +28,7 @@ func main() {
 	http.HandleFunc("/response/update", UpdateResponseHandler)
 	http.HandleFunc("/register", RegisterHandler)
 	http.HandleFunc("/login0", LoginHandler)
+	http.HandleFunc("/api/me", GetCurrentUserHandler)
 
 	log.Println("Serveur lancé sur le port 8080 🚀")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

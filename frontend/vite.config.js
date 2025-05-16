@@ -22,6 +22,7 @@ export default defineConfig({
       "/response/update": 'http://localhost:8080',
       "/register": 'http://localhost:8080',
       "/login0": 'http://localhost:8080',
+      "/api/me": 'http://localhost:8080',
     }
   }
 })

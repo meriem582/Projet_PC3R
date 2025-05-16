@@ -733,3 +733,69 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+
+func GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
+	// Extraire le token JWT du header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		return
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Valider le token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte("your-secret-key"), nil
+	})
+
+	if err != nil || !token.Valid {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	// Extraire l'ID utilisateur du token
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+		return
+	}
+
+	userID, ok := claims["user_id"].(float64) // JWT numbers are float64
+	if !ok {
+		http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
+		return
+	}
+
+	// Récupérer les infos utilisateur depuis la base de données
+	var user struct {
+		ID       int
+		Username string
+		Email    string
+		Picture  string
+	}
+
+	err = db.QueryRow("SELECT id, username, email, picture FROM up_users WHERE id = $1",
+		int(userID)).Scan(&user.ID, &user.Username, &user.Email, &user.Picture)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "User not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Retourner les infos utilisateur
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"user": map[string]interface{}{
+			"id":       user.ID,
+			"username": user.Username,
+			"email":    user.Email,
+			"picture":  user.Picture,
+		},
+	})
+}
