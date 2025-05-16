@@ -5,19 +5,17 @@ export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Ajout d'un état de chargement
-
+  const [loading, setLoading] = useState(true); 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Remplacer l'endpoint Strapi par votre propre endpoint
       axios.get('http://localhost:8080/api/me', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
       .then((res) => {
-        setUser(res.data.user); // Adapté à la structure de votre réponse
+        setUser(res.data.user);
         setLoading(false);
       })
       .catch((err) => {
@@ -41,12 +39,11 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  // Valeur du contexte
   const value = {
     user,
     login,
     logout,
-    isAuthenticated: !!user, // Booléen pour vérifier si l'utilisateur est connecté
+    isAuthenticated: !!user,
     loading
   };
 

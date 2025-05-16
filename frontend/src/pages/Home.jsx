@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import SearchBar from './SearchBar';
 import axios from 'axios';
@@ -11,9 +11,6 @@ function Home() {
   const [tracks, setTracks] = useState([]);
   const [trackPage, setTrackPage] = useState(1);
   const [likesData, setLikesData] = useState({});
-  const [currentTrack, setCurrentTrack] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef(null);
   const [comments, setComments] = useState({});
   const [commentInputs, setCommentInputs] = useState({});
   const [activeCommentTrack, setActiveCommentTrack] = useState(null);
@@ -397,8 +394,8 @@ function Home() {
       ? {
           id: item.id_chart, 
           title: item.title,
-          preview: item.preview,
-          link: item.link,
+          rank: item.rank,
+          duration: item.duration,
           artistId: item.id_artist,
           artistName: item.nom_artist,
           picture: item.picture_artist
@@ -406,8 +403,8 @@ function Home() {
       : {
           id: item.track.id,
           title: item.track.title,
-          preview: item.track.preview,
-          link: item.track.link,
+          rank: item.track.rank,
+          duration: item.track.duration,
           artistId: item.id,
           artistName: item.name,
           picture: item.picture
@@ -416,61 +413,36 @@ function Home() {
     const likeInfo = likesData[track.id] || { like_count: 0, user_liked: false };
     const trackComments = comments[track.id] || [];
 
+     const formatDuration = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     return (
       <div className="music-card" key={`${track.id}-${index}`}>
         <div className="card-header">
           <div className="artist-info">
             <h3 className="artist-name">{track.artistName}</h3>
             <p className="track-title">{track.title}</p>
+            <div className="track-meta">
+              {track.rank && <p className="track-rank">Rank: {track.rank}</p>}
+              <br />
+              {track.duration && <p className="track-duration">Duration: {formatDuration(track.duration)}</p>}
+            </div>
           </div>
         </div>
         
         <div className="card-content">
-          <div className="track-details">
-            {item.album && (
-              <div className="album-info">
-                <span className="detail-label">Album:</span> {item.album.title}
-              </div>
-            )}
-            <a href={track.link} target="_blank" rel="noopener noreferrer" className="deezer-link">
-              Écouter sur Deezer
-            </a>
-          </div>
-
-          <div 
-            className={`track-image-container ${currentTrack === track.preview ? 'active' : ''}`}
-            onMouseEnter={() => setCurrentTrack(track.preview)}
-            onMouseLeave={() => !isPlaying && setCurrentTrack(null)}
-          >
+          <div className="track-image-container">
             <img src={track.picture} alt={track.artistName} className="artist-image" />
-            
-            {track.preview && (
-              <div className="audio-controls">
-                <button
-                  className={`play-button ${isPlaying && currentTrack === track.preview ? 'playing' : ''}`}
-                  onClick={() => togglePlay(track.preview)}
-                >
-                  {isPlaying && currentTrack === track.preview ? (
-                    <i className="icon-pause"></i>
-                  ) : (
-                    <i className="icon-play"></i>
-                  )}
-                </button>
-
-                {currentTrack === track.preview && (
-                  <div className="audio-player">
-                    <audio
-                      ref={audioRef}
-                      src={currentTrack}
-                      controls
-                      onPause={() => setIsPlaying(false)}
-                      onPlay={() => setIsPlaying(true)}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
+
+          {item.album && (
+            <div className="album-info">
+              <span className="detail-label">Album:</span> {item.album.title}
+            </div>
+          )}
         </div>
 
         <div className="card-footer">
@@ -604,21 +576,6 @@ function Home() {
     );
   };
 
-  const togglePlay = (previewUrl) => {
-    if (currentTrack === previewUrl) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch(error => {
-          console.error("Erreur de lecture audio :", error);
-        });
-      }
-    } else {
-      setCurrentTrack(previewUrl);
-      setIsPlaying(true);
-    }
-  };
-
   useEffect(() => {
     const fetchCharts = async () => {
       try {
@@ -648,8 +605,8 @@ function Home() {
           track: {
             id: item.track?.id || generateTempId(),
             title: item.track?.title,
-            preview: item.track?.preview,
-            link: item.track?.link
+            rank: item.track?.rank,
+            duration: item.track?.duration
           }
         }));
         
@@ -666,15 +623,6 @@ function Home() {
     fetchCharts();
     fetchRandomTracks();
   }, []);
-
-  useEffect(() => {
-    if (audioRef.current && isPlaying) {
-      audioRef.current.play().catch(error => {
-        console.error("Erreur de lecture audio :", error);
-        setIsPlaying(false);
-      });
-    }
-  }, [currentTrack, isPlaying]);
 
   return (
     <div className="music-app">

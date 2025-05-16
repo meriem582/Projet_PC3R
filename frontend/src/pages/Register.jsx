@@ -30,14 +30,12 @@ function Register({ onRegister }) {
     }
 
     try {
-      // Envoyer les données d'inscription à votre propre API
       const response = await axios.post('/register', {
         username: form.username,
         email: form.email,
         password: form.password
       });
 
-      // Si l'inscription réussit, connecter l'utilisateur directement
       const loginResponse = await axios.post('/login0', {
         email: form.email,
         password: form.password

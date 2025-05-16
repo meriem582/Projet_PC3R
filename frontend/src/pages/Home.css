@@ -773,3 +773,15 @@ p.track-title {
     max-width: 100%;
   }
 }
+
+.track-meta {
+  margin: 8px 0;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.track-rank, .track-duration {
+  margin: 2px 0;
+  display: inline-block;
+  margin-right: 10px;
+}

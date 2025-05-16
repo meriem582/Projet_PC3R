@@ -6,11 +6,9 @@ import (
 )
 
 func main() {
-	// Connexion à la base de données
 	db = InitDB()
 	defer db.Close()
 
-	// les handlers pour les différentes routes de l'API REST
 	http.HandleFunc("/search", SearchHandler)
 	http.HandleFunc("/charts", GetAllChartsHandler)
 	http.HandleFunc("/tracks", GetRandomTracksHandler)

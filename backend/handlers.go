@@ -12,10 +12,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// db est accessible globalement
 var db *sql.DB
 
-// handler pour la page d'accueil, pour récupérer les publications selon le type de recherche
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
@@ -27,9 +25,9 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	searchType := r.URL.Query().Get("type") // "artist", "track" ou "album"
+	searchType := r.URL.Query().Get("type") 
 	if searchType == "" {
-		searchType = "artist" // Par défaut, recherche par artiste
+		searchType = "artist"
 	}
 
 	query = "%" + strings.ToLower(query) + "%"
@@ -41,7 +39,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	case "track":
 		rows, err = db.Query(`
             SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
-                   t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
+                   t.title AS track_title, t.link AS track_link, t.rank, t.duration,
                    al.title AS album_title
             FROM artists AS a 
             JOIN tracks AS t ON t.id_artist = a.id_artist
@@ -50,16 +48,16 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	case "album":
 		rows, err = db.Query(`
             SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
-                   t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
+                   t.title AS track_title, t.link AS track_link, t.rank, t.duration,
                    al.title AS album_title
             FROM artists AS a 
             JOIN tracks AS t ON t.id_artist = a.id_artist
             JOIN albums AS al ON t.id_album = al.id_album
             WHERE LOWER(al.title) LIKE $1`, query)
-	default: // artist
+	default:
 		rows, err = db.Query(`
             SELECT a.id_artist, a.name AS artist_name, a.link AS artist_link, a.picture AS artist_picture, 
-                   t.title AS track_title, t.link AS track_link, t.preview AS track_preview,
+                   t.title AS track_title, t.link AS track_link, t.rank, t.duration,
                    al.title AS album_title
             FROM artists AS a 
             JOIN tracks AS t ON t.id_artist = a.id_artist
@@ -81,14 +79,15 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var (
-			id                                              int
-			name, picture, link, title, track_link, preview string
-			album_title                                     sql.NullString // Utilisation de NullString pour gérer les valeurs NULL
+			id                                     int
+			name, picture, link, title, track_link string
+			rank, duration                         int
+			album_title                            sql.NullString
 		)
 
 		if err := rows.Scan(
 			&id, &name, &link, &picture,
-			&title, &track_link, &preview,
+			&title, &track_link, &rank, &duration,
 			&album_title,
 		); err != nil {
 			http.Error(w, "Erreur lecture résultat: "+err.Error(), http.StatusInternalServerError)
@@ -101,9 +100,10 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 			"picture": picture,
 			"link":    link,
 			"track": map[string]interface{}{
-				"title":   title,
-				"link":    track_link,
-				"preview": preview,
+				"title":    title,
+				"link":     track_link,
+				"rank":     rank,
+				"duration": duration,
 			},
 		}
 
@@ -133,12 +133,11 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handler pour récupérer les charts "TOP 10"
 func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(`
-        SELECT id_chart, title, link, preview, 
+        SELECT id_chart, title, link, 
                id_artist, id_album, nom_artist, picture_artist, 
-               link_artist, nom_album FROM Charts
+               link_artist, nom_album, rank, duration FROM Charts
     `)
 	if err != nil {
 		http.Error(w, "Erreur lors de la récupération des charts", http.StatusInternalServerError)
@@ -150,18 +149,18 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var (
-			title, link, preview          string
-			id_artist, id_album, id_chart int
-			nom_artist, picture_artist    string
-			link_artist, nom_album        string
+			title, link                   string
+			id_artist, id_album, id_chart  int
+			nom_artist, picture_artist     string
+			link_artist, nom_album         string
+			rank, duration                 int
 		)
 
 		if err := rows.Scan(
-			&id_chart, &title, &link, &preview,
+			&id_chart, &title, &link,
 			&id_artist, &id_album, &nom_artist, &picture_artist,
-			&link_artist, &nom_album,
+			&link_artist, &nom_album, &rank, &duration,
 		); err != nil {
-			// En cas d'erreur, renvoyer un tableau vide plutôt que d'échouer
 			charts = []map[string]interface{}{}
 			break
 		}
@@ -170,13 +169,14 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 			"id_chart":       id_chart,
 			"title":          title,
 			"link":           link,
-			"preview":        preview,
 			"id_artist":      id_artist,
 			"id_album":       id_album,
 			"nom_artist":     nom_artist,
 			"picture_artist": picture_artist,
 			"link_artist":    link_artist,
 			"nom_album":      nom_album,
+			"rank":           rank,
+			"duration":       duration,
 		})
 	}
 
@@ -188,7 +188,6 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(charts)
 }
 
-// handler pour récupérer les morceaux aléatoires avec pagination
 func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 	page := r.URL.Query().Get("page")
 	if page == "" {
@@ -201,7 +200,7 @@ func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := db.Query(`
 		SELECT a.id_artist, a.name, a.link, a.picture,
-		       t.title, t.link, t.preview
+		       t.title, t.link, t.rank, t.duration
 		FROM artists AS a
 		JOIN tracks AS t ON t.id_artist = a.id_artist
 		ORDER BY RANDOM()
@@ -217,8 +216,9 @@ func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var id int
-		var name, picture, link, title, track_link, preview string
-		if err := rows.Scan(&id, &name, &link, &picture, &title, &track_link, &preview); err != nil {
+		var name, picture, link, title, track_link string
+		var rank, duration int
+		if err := rows.Scan(&id, &name, &link, &picture, &title, &track_link, &rank, &duration); err != nil {
 			http.Error(w, "Erreur lecture résultat", http.StatusInternalServerError)
 			return
 		}
@@ -228,9 +228,10 @@ func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 			"picture": picture,
 			"link":    link,
 			"track": map[string]interface{}{
-				"title":   title,
-				"link":    track_link,
-				"preview": preview,
+				"title":    title,
+				"link":     track_link,
+				"rank":     rank,
+				"duration": duration,
 			},
 		})
 	}
@@ -239,7 +240,6 @@ func GetRandomTracksHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(tracks)
 }
 
-// handler pour ajouter un like
 func AddLikeHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser  int `json:"id_user"`
@@ -264,7 +264,6 @@ func AddLikeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// handler pour supprimer un like
 func RemoveLikeHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser  int `json:"id_user"`
@@ -285,7 +284,6 @@ func RemoveLikeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// handler pour récupérer les informations de like (le nombre)
 func GetLikesInfoHandler(w http.ResponseWriter, r *http.Request) {
 	trackID := r.URL.Query().Get("track_id")
 	userID := r.URL.Query().Get("user_id")
@@ -309,7 +307,6 @@ func GetLikesInfoHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handler pour ajouter un commentaire
 func AddCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser  int    `json:"id_user"`
@@ -334,7 +331,6 @@ func AddCommentHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// handler pour récupérer les commentaires d'un morceau
 func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	trackID := r.URL.Query().Get("track_id")
 	if trackID == "" {
@@ -381,7 +377,6 @@ func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(comments)
 }
 
-// handler pour supprimer un commentaire
 func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdComment int `json:"id"`
@@ -393,7 +388,6 @@ func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérification que l'utilisateur est bien l'auteur
 	var authorID int
 	err := db.QueryRow("SELECT id_user FROM Commentaires WHERE id = $1", input.IdComment).Scan(&authorID)
 	if err != nil {
@@ -415,7 +409,6 @@ func DeleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// handler pour mettre à jour un commentaire
 func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdComment int    `json:"id"`
@@ -452,7 +445,6 @@ func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// handler pour ajouter une réponse à un commentaire
 func AddResponseHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdUser    int    `json:"id_user"`
@@ -477,7 +469,6 @@ func AddResponseHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// handler pour récupérer les réponses d'un commentaire
 func GetResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	commentID := r.URL.Query().Get("comment_id")
 	if commentID == "" {
@@ -528,7 +519,6 @@ func GetResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(responses)
 }
 
-// handler pour supprimer une réponse
 func DeleteResponseHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdResponse int `json:"id"`
@@ -561,7 +551,6 @@ func DeleteResponseHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// handler pour compter le nombre de réponses à un commentaire
 func GetResponseCountHandler(w http.ResponseWriter, r *http.Request) {
 	commentID := r.URL.Query().Get("comment_id")
 	if commentID == "" {
@@ -581,7 +570,6 @@ func GetResponseCountHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handler pour mettre à jour une réponse
 func UpdateResponseHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IdResponse int    `json:"id"`
@@ -622,6 +610,7 @@ func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
 }
+
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Username string `json:"username"`
@@ -634,7 +623,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifier si l'email ou le username existe déjà
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM up_users WHERE email = $1 OR username = $2",
 		input.Email, input.Username).Scan(&count)
@@ -647,14 +635,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hasher le mot de passe (vous devrez implémenter cette fonction)
 	hashedPassword, err := hashPassword(input.Password)
 	if err != nil {
 		http.Error(w, "Error processing password", http.StatusInternalServerError)
 		return
 	}
 
-	// Insérer le nouvel utilisateur
 	_, err = db.Exec("INSERT INTO up_users (username, email, password) VALUES ($1, $2, $3)",
 		input.Username, input.Email, hashedPassword)
 	if err != nil {
@@ -672,8 +658,6 @@ func checkPasswordHash(password, hash string) bool {
 }
 
 func generateJWTToken(userID int) (string, error) {
-	// Implémentez la génération de token JWT selon votre préférence
-	// Exemple simplifié :
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
@@ -711,13 +695,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérifier le mot de passe (vous devrez implémenter cette fonction)
 	if !checkPasswordHash(input.Password, user.Password) {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// Générer un token JWT (vous devrez implémenter cette fonction)
 	token, err := generateJWTToken(user.ID)
 	if err != nil {
 		http.Error(w, "Error generating token", http.StatusInternalServerError)
@@ -735,7 +717,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
-	// Extraire le token JWT du header
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		http.Error(w, "Authorization header missing", http.StatusUnauthorized)
@@ -744,7 +725,6 @@ func GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-	// Valider le token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -757,20 +737,18 @@ func GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extraire l'ID utilisateur du token
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
 		return
 	}
 
-	userID, ok := claims["user_id"].(float64) // JWT numbers are float64
+	userID, ok := claims["user_id"].(float64)
 	if !ok {
 		http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
 		return
 	}
 
-	// Récupérer les infos utilisateur depuis la base de données
 	var user struct {
 		ID       int
 		Username string
@@ -789,7 +767,6 @@ func GetCurrentUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retourner les infos utilisateur
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"user": map[string]interface{}{
 			"id":       user.ID,

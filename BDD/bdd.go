@@ -44,11 +44,12 @@ type Artist struct {
 }
 
 type Chart struct {
-	ID      int    `json:"id"`
-	Title   string `json:"title"`
-	Link    string `json:"link"`
-	Preview string `json:"preview"`
-	Artist  struct {
+	ID       int    `json:"id"`
+	Title    string `json:"title"`
+	Link     string `json:"link"`
+	Rank     int    `json:"rank"`
+	Duration int    `json:"duration"`
+	Artist   struct {
 		ID      int    `json:"id"`
 		Name    string `json:"name"`
 		Link    string `json:"link"`
@@ -61,11 +62,12 @@ type Chart struct {
 }
 
 type Track struct {
-	ID      int    `json:"id"`
-	Title   string `json:"title"`
-	Preview string `json:"preview"`
-	Link    string `json:"link"`
-	Album   struct {
+	ID       int    `json:"id"`
+	Title    string `json:"title"`
+	Link     string `json:"link"`
+	Rank     int    `json:"rank"`
+	Duration int    `json:"duration"`
+	Album    struct {
 		ID int `json:"id"`
 	} `json:"album"`
 	Artist struct {
@@ -73,7 +75,6 @@ type Track struct {
 	} `json:"artist"`
 }
 
-// Récupérer des données JSON
 func fetchDeezerData(url string, target interface{}) error {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -87,12 +88,10 @@ func fetchDeezerData(url string, target interface{}) error {
 		return err
 	}
 
-	// Rewind the response body and decode into the target
 	resp.Body = io.NopCloser(bytes.NewReader(body))
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
-// Insérer un genre
 func insertGenre(db *sql.DB, genre Genre) {
 	query := `INSERT INTO "genres" (id_genre, name) VALUES ($1, $2) ON CONFLICT (id_genre) DO NOTHING;`
 	_, err := db.Exec(query, genre.ID, genre.Name)
@@ -102,21 +101,21 @@ func insertGenre(db *sql.DB, genre Genre) {
 }
 
 func insertChart(db *sql.DB, chart Chart) {
-	query := `INSERT INTO "charts" (id_chart, title, link, preview, id_artist, id_album, nom_artist, picture_artist, link_artist, nom_album) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+	query := `INSERT INTO "charts" (id_chart, title, link, id_artist, id_album, nom_artist, picture_artist, link_artist, nom_album, rank, duration) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
 	          ON CONFLICT (id_chart) DO NOTHING;`
-	_, err := db.Exec(query, chart.ID, chart.Title, chart.Link, chart.Preview, chart.Artist.ID, chart.Album.ID, chart.Artist.Name, chart.Artist.Picture, chart.Artist.Link, chart.Album.Title)
+	_, err := db.Exec(query, chart.ID, chart.Title, chart.Link, chart.Artist.ID, chart.Album.ID,
+		chart.Artist.Name, chart.Artist.Picture, chart.Artist.Link, chart.Album.Title, chart.Rank, chart.Duration)
 	if err != nil {
 		log.Printf("Erreur insertion chart %d: %v", chart.ID, err)
 	}
 }
 
 func insertAlbum(db *sql.DB, album Album) {
-
 	query := `INSERT INTO "albums" (id_album, title, link, id_artist) 
 	          VALUES ($1, $2, $3, $4) 
 	          ON CONFLICT (id_album) DO NOTHING;`
-	_, err := db.Exec(query, album.ID, album.Title, album.Link, album.Artist.ID) // <-- Correction ici
+	_, err := db.Exec(query, album.ID, album.Title, album.Link, album.Artist.ID)
 	if err != nil {
 		log.Printf("Erreur insertion album %d: %v", album.ID, err)
 	}
@@ -132,18 +131,16 @@ func insertArtist(db *sql.DB, artist Artist) {
 	}
 }
 
-// Insérer une track
 func insertTrack(db *sql.DB, track Track) {
-	query := `INSERT INTO "tracks" (id_track, title, preview, link, id_album, id_artist) 
-	          VALUES ($1, $2, $3, $4, $5, $6) 
+	query := `INSERT INTO "tracks" (id_track, title, link, id_album, id_artist, rank ,duration) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7) 
 	          ON CONFLICT (id_track) DO NOTHING;`
-	_, err := db.Exec(query, track.ID, track.Title, track.Preview, track.Link, track.Album.ID, track.Artist.ID)
+	_, err := db.Exec(query, track.ID, track.Title, track.Link, track.Album.ID, track.Artist.ID, track.Rank, track.Duration)
 	if err != nil {
 		log.Printf("Erreur insertion track %d: %v", track.ID, err)
 	}
 }
 
-// insérer de genreAlbum
 func insertGenreAlbum(db *sql.DB, genreID int, albumID int) {
 	query := `INSERT INTO "album_genres" (id_genre, id_album) 
 	          VALUES ($1, $2) 
@@ -154,7 +151,6 @@ func insertGenreAlbum(db *sql.DB, genreID int, albumID int) {
 	}
 }
 
-// Récupérer et insérer les genres
 func fetchAndInsertGenres(db *sql.DB) {
 	var response struct {
 		Data []Genre `json:"data"`
@@ -197,16 +193,13 @@ func fetchAndInsertAlbumsByGenre(db *sql.DB, genreName string, genreID int) {
 	}
 	genreNameEncoded := url.QueryEscape(genreName)
 
-	// Construire l'URL pour rechercher par genre
 	url := fmt.Sprintf("https://api.deezer.com/search/album?q=genre:\"%s\"", strings.ReplaceAll(genreNameEncoded, " ", "%20"))
 
-	// Appeler l'API Deezer
 	if err := fetchDeezerData(url, &response); err != nil {
 		log.Println("Erreur fetch albums:", err)
 		return
 	}
 
-	// Insérer les albums dans la base de données
 	for _, album := range response.Data {
 		insertAlbum(db, album)
 		insertGenreAlbum(db, genreID, album.ID)
@@ -216,16 +209,13 @@ func fetchAndInsertAlbumsByGenre(db *sql.DB, genreName string, genreID int) {
 func fetchAndInsertArtistsByAlbum(db *sql.DB, artistID int) {
 	var artist Artist
 
-	// Construire l'URL pour rechercher par artiste
 	url := fmt.Sprintf("https://api.deezer.com/artist/%d", artistID)
 
-	// Appeler l'API Deezer et décoder la réponse dans la variable artist
 	if err := fetchDeezerData(url, &artist); err != nil {
 		log.Printf("Erreur fetch artist %d: %v", artistID, err)
 		return
 	}
 
-	// Insérer l'artiste dans la base de données
 	insertArtist(db, artist)
 }
 
@@ -275,9 +265,7 @@ func fetchArtistIdFromDB(db *sql.DB) ([]int, error) {
 	return artistIds, nil
 }
 
-// Récupérer les tracks d'un album et les insérer
 func fetchAndInsertTracksByAlbum(db *sql.DB, albumID int) {
-	// D'abord vérifier si l'album existe dans votre base
 	var exists bool
 	err := db.QueryRow(`SELECT EXISTS(SELECT 1 FROM albums WHERE id_album = $1)`, albumID).Scan(&exists)
 	if err != nil || !exists {
@@ -296,21 +284,18 @@ func fetchAndInsertTracksByAlbum(db *sql.DB, albumID int) {
 	}
 
 	for _, track := range response.Data {
-		// Ne pas insérer si l'ID d'album est 0 ou invalide
 		if track.Album.ID <= 0 {
-			track.Album.ID = albumID // Forcer l'ID d'album correct
+			track.Album.ID = albumID
 		}
 
-		// Vérifier aussi l'artiste
 		if track.Artist.ID <= 0 {
-			// Récupérer l'artiste depuis l'album si possible
 			var artistID int
 			err := db.QueryRow(`SELECT id_artist FROM albums WHERE id_album = $1`, albumID).Scan(&artistID)
 			if err == nil {
 				track.Artist.ID = artistID
 			} else {
 				log.Printf("Impossible de trouver l'artiste pour l'album %d: %v", albumID, err)
-				continue // Skip cette track
+				continue
 			}
 		}
 
@@ -318,9 +303,7 @@ func fetchAndInsertTracksByAlbum(db *sql.DB, albumID int) {
 	}
 }
 
-// Récupérer et insérer les tracks pour chaque album
 func fetchAndInsertTracksForAlbums(db *sql.DB) {
-	// Récupérer les albums depuis la base de données
 	rows, err := db.Query(`SELECT id_album FROM albums`)
 	if err != nil {
 		log.Fatal("Erreur récupération albums:", err)
@@ -332,8 +315,6 @@ func fetchAndInsertTracksForAlbums(db *sql.DB) {
 		if err := rows.Scan(&albumID); err != nil {
 			log.Fatal("Erreur lecture album ID:", err)
 		}
-		// Pour chaque album, récupérer et insérer les tracks
-		log.Printf("Récupération des tracks pour l'album %d", albumID)
 		fetchAndInsertTracksByAlbum(db, albumID)
 	}
 
@@ -341,60 +322,13 @@ func fetchAndInsertTracksForAlbums(db *sql.DB) {
 		log.Fatal("Erreur itération sur les albums:", err)
 	}
 }
+
 func clearAllChart(db *sql.DB) {
 	_, err := db.Exec(fmt.Sprintf(`TRUNCATE TABLE charts RESTART IDENTITY CASCADE;`))
 	if err != nil {
 		log.Printf("Erreur lors du TRUNCATE charts: %v", err)
 	} else {
 		log.Printf("Table charts vidée.")
-	}
-}
-
-func updateLinkTrack(db *sql.DB, link string, id int) {
-	query := `UPDATE tracks SET link = $1 WHERE id_track = $2;`
-	_, err := db.Exec(query, link, id)
-	if err != nil {
-		log.Printf("Erreur mise à jour link track %d: %v", id, err)
-	}
-}
-
-func selectIdsTrack(db *sql.DB) ([]int, error) {
-	rows, err := db.Query(`SELECT id_track FROM tracks`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var ids []int
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return ids, nil
-}
-
-func selectIdsTrackAndUpdateLinkWithDeezer(db *sql.DB) {
-	ids, err := selectIdsTrack(db)
-	if err != nil {
-		log.Fatal("Erreur récupération track IDs:", err)
-	}
-
-	for _, id := range ids {
-		var track Track
-		url := fmt.Sprintf("https://api.deezer.com/track/%d", id)
-		if err := fetchDeezerData(url, &track); err != nil {
-			log.Printf("Erreur fetch track %d: %v", id, err)
-			continue
-		}
-		updateLinkTrack(db, track.Link, id)
 	}
 }
 
@@ -406,22 +340,15 @@ func main() {
 	}
 	defer db.Close()
 
-	log.Println("Début de la mise à jour de la base de données...")
-	selectIdsTrackAndUpdateLinkWithDeezer(db)
-	log.Println("Mise à jour des liens terminée.")
-
-	log.Println("Début d'insertion de nouveauw tuples...")
 	clearAllChart(db)
 	fetchAndInsertGenres(db)
 	fetchAndInsertCharts(db)
-
-	// Récupérer les genres depuis la base de données
 	genres, err := fetchGenresFromDB(db)
+
 	if err != nil {
 		log.Fatal("Erreur récupération genres:", err)
 	}
 
-	// Pour chaque genre, récupérer et insérer les albums associés
 	for _, genre := range genres {
 		fetchAndInsertAlbumsByGenre(db, genre.Name, genre.ID)
 	}
