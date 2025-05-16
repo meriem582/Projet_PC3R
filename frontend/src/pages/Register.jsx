@@ -9,73 +9,15 @@ function Register({ onRegister }) {
     email: '',
     password: '',
     confirmPassword: '',
-    provider: 'local',
-    resetPasswordToken: '',
-    confirmationToken: '',
-    confirmed: false,
-    blocked: false,
-    role: null,
-    photoDeProfil: null,
-    id_user: ''
   });
 
   const [error, setError] = useState('');
-  const [previewImage, setPreviewImage] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleDragEnter = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.match('image.*')) {
-      handleFile(file);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      handleFile(file);
-    }
-  };
-
-  const handleFile = (file) => {
-    setForm({ ...form, photoDeProfil: file });
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreviewImage(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleShowConfirmPassword = () => {
-    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -88,28 +30,35 @@ function Register({ onRegister }) {
     }
 
     try {
-      const formData = new FormData();
-      formData.append('username', form.username);
-      formData.append('email', form.email);
-      formData.append('password', form.password);
-      if (form.photoDeProfil) {
-        formData.append('files.photoDeProfil', form.photoDeProfil);
-      }
-
-      const response = await axios.post('http://localhost:1337/api/auth/local/register', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      // Envoyer les données d'inscription à votre propre API
+      const response = await axios.post('/register', {
+        username: form.username,
+        email: form.email,
+        password: form.password
       });
 
-      const { jwt, user } = response.data;
-      localStorage.setItem('token', jwt);
+      // Si l'inscription réussit, connecter l'utilisateur directement
+      const loginResponse = await axios.post('/login0', {
+        email: form.email,
+        password: form.password
+      });
+
+      const { token, user } = loginResponse.data;
+      localStorage.setItem('token', token);
       onRegister(user);
       navigate('/');
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error?.message || "Erreur lors de l'inscription.");
+      setError(err.response?.data?.message || "Erreur lors de l'inscription.");
     }
+  };
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleShowConfirmPassword = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   return (
@@ -118,8 +67,9 @@ function Register({ onRegister }) {
         <h2 className="register-title">Rejoignez-nous à MerYouZik</h2>
         <p className="register-subtitle">Créez votre compte en quelques secondes</p>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="register-form">
+        {/* Les champs du formulaire restent les mêmes */}
         <div className="form-group">
           <input 
             type="text" 
@@ -215,41 +165,6 @@ function Register({ onRegister }) {
                 : '✗ Les mots de passe ne correspondent pas'}
             </p>
           )}
-        </div>
-
-        <div className="form-group">
-          <div 
-            className={`image-upload ${isDragging ? 'dragging' : ''} ${previewImage ? 'has-image' : ''}`}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            {previewImage ? (
-              <div className="image-preview-container">
-                <img src={previewImage} alt="Preview" className="preview-image" />
-                <div className="image-overlay">
-                  <span className="change-image-text">Changer d'image</span>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="upload-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="currentColor"/>
-                  </svg>
-                </div>
-                <p className="upload-text">Glissez-déposez votre photo ou cliquez pour sélectionner</p>
-              </>
-            )}
-            <input 
-              type="file" 
-              name="photoDeProfil" 
-              onChange={handleFileChange}
-              accept="image/*"
-              className="file-input"
-            />
-          </div>
         </div>
 
         <button type="submit" className="submit-button" style={{background: '#9b09ff'}}>

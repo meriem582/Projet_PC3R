@@ -20,6 +20,8 @@ export default defineConfig({
       "/response/get": 'http://localhost:8080',
       "/response/count": 'http://localhost:8080',
       "/response/update": 'http://localhost:8080',
+      "/register": 'http://localhost:8080',
+      "/login0": 'http://localhost:8080',
     }
   }
 })

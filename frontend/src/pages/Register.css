@@ -258,6 +258,24 @@
     color: #9b09ff;
 }
 
+.resend-code {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.resend-button {
+  background: none;
+  border: none;
+  color: #9b09ff;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.resend-button:hover {
+  color: #7a00cc;
+}
+
 @media (max-width: 480px) {
     .register-container {
         padding: 1.5rem;

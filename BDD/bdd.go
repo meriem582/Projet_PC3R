@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	DB_HOST     = "dpg-cvtuc3q4d50c73aodl90-a.oregon-postgres.render.com"
-	DB_NAME     = "music_app_l1yd"
+	DB_HOST     = "dpg-d0jfc0umcj7s73fur7ig-a.oregon-postgres.render.com"
+	DB_NAME     = "meryouzik_bdd"
 	DB_USER     = "admin"
-	DB_PASSWORD = "X9KFl31tkZrhQDHFuuYWeG80eoB84S1O"
+	DB_PASSWORD = "mXXOwM0aUIePbdj2Y6FzWvJNvOXmkXuw"
 )
 
 type Genre struct {
@@ -28,27 +28,27 @@ type Genre struct {
 }
 
 type Album struct {
-	ID          int    `json:"id"`
-	Title       string `json:"title"`
-	Link        string `json:"link"`
-	Artist      struct {
+	ID     int    `json:"id"`
+	Title  string `json:"title"`
+	Link   string `json:"link"`
+	Artist struct {
 		ID int `json:"id"`
 	} `json:"artist"`
 }
 
 type Artist struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Link     string `json:"link"`
-	Picture  string `json:"picture"`
+	ID      int    `json:"id"`
+	Name    string `json:"name"`
+	Link    string `json:"link"`
+	Picture string `json:"picture"`
 }
 
 type Chart struct {
-	ID             int    `json:"id"`
-	Title          string `json:"title"`
-	Link           string `json:"link"`
-	Preview        string `json:"preview"`
-	Artist         struct {
+	ID      int    `json:"id"`
+	Title   string `json:"title"`
+	Link    string `json:"link"`
+	Preview string `json:"preview"`
+	Artist  struct {
 		ID      int    `json:"id"`
 		Name    string `json:"name"`
 		Link    string `json:"link"`
@@ -61,11 +61,11 @@ type Chart struct {
 }
 
 type Track struct {
-	ID             int    `json:"id"`
-	Title          string `json:"title"`
-	Preview        string `json:"preview"`
-	Link           string `json:"link"`
-	Album          struct {
+	ID      int    `json:"id"`
+	Title   string `json:"title"`
+	Preview string `json:"preview"`
+	Link    string `json:"link"`
+	Album   struct {
 		ID int `json:"id"`
 	} `json:"album"`
 	Artist struct {
@@ -341,23 +341,60 @@ func fetchAndInsertTracksForAlbums(db *sql.DB) {
 		log.Fatal("Erreur itération sur les albums:", err)
 	}
 }
-func clearAllTables(db *sql.DB) {
-	tables := []string{
-		"album_genres",
-		"tracks",
-		"charts",
-		"albums",
-		"artists",
-		"genres",
+func clearAllChart(db *sql.DB) {
+	_, err := db.Exec(fmt.Sprintf(`TRUNCATE TABLE charts RESTART IDENTITY CASCADE;`))
+	if err != nil {
+		log.Printf("Erreur lors du TRUNCATE charts: %v", err)
+	} else {
+		log.Printf("Table charts vidée.")
+	}
+}
+
+func updateLinkTrack(db *sql.DB, link string, id int) {
+	query := `UPDATE tracks SET link = $1 WHERE id_track = $2;`
+	_, err := db.Exec(query, link, id)
+	if err != nil {
+		log.Printf("Erreur mise à jour link track %d: %v", id, err)
+	}
+}
+
+func selectIdsTrack(db *sql.DB) ([]int, error) {
+	rows, err := db.Query(`SELECT id_track FROM tracks`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
 	}
 
-	for _, table := range tables {
-		_, err := db.Exec(fmt.Sprintf(`TRUNCATE TABLE "%s" RESTART IDENTITY CASCADE;`, table))
-		if err != nil {
-			log.Printf("Erreur lors du TRUNCATE de %s: %v", table, err)
-		} else {
-			log.Printf("Table %s vidée.", table)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
+
+func selectIdsTrackAndUpdateLinkWithDeezer(db *sql.DB) {
+	ids, err := selectIdsTrack(db)
+	if err != nil {
+		log.Fatal("Erreur récupération track IDs:", err)
+	}
+
+	for _, id := range ids {
+		var track Track
+		url := fmt.Sprintf("https://api.deezer.com/track/%d", id)
+		if err := fetchDeezerData(url, &track); err != nil {
+			log.Printf("Erreur fetch track %d: %v", id, err)
+			continue
 		}
+		updateLinkTrack(db, track.Link, id)
 	}
 }
 
@@ -370,8 +407,13 @@ func main() {
 	defer db.Close()
 
 	log.Println("Début de la mise à jour de la base de données...")
-	clearAllTables(db)
+	selectIdsTrackAndUpdateLinkWithDeezer(db)
+	log.Println("Mise à jour des liens terminée.")
+
+	log.Println("Début d'insertion de nouveauw tuples...")
+	clearAllChart(db)
 	fetchAndInsertGenres(db)
+	fetchAndInsertCharts(db)
 
 	// Récupérer les genres depuis la base de données
 	genres, err := fetchGenresFromDB(db)
@@ -392,11 +434,8 @@ func main() {
 	for _, artistId := range ArtistIds {
 		fetchAndInsertArtistsByAlbum(db, artistId)
 	}
-	fetchAndInsertCharts(db)
-
-	// Récupérer et insérer les tracks pour chaque album
 	fetchAndInsertTracksForAlbums(db)
 
-	log.Println("Mise à jour terminée. Attente de 30 secondes...")
+	log.Println("fin de l'insertion de nouveau tuples.")
 
 }

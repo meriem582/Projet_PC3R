@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	DB_HOST     = "dpg-cvtuc3q4d50c73aodl90-a.oregon-postgres.render.com"
-	DB_NAME     = "music_app_l1yd"
+	DB_HOST     = "dpg-d0jfc0umcj7s73fur7ig-a.oregon-postgres.render.com"
+	DB_NAME     = "meryouzik_bdd"
 	DB_USER     = "admin"
-	DB_PASSWORD = "X9KFl31tkZrhQDHFuuYWeG80eoB84S1O"
+	DB_PASSWORD = "mXXOwM0aUIePbdj2Y6FzWvJNvOXmkXuw"
 )
 
 func InitDB() *sql.DB {
