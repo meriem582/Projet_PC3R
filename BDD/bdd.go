@@ -9,17 +9,19 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
+	"os"
 	"strings"
 
 	_ "github.com/lib/pq"
 )
 
-const (
-	DB_HOST     = "dpg-d0jfc0umcj7s73fur7ig-a.oregon-postgres.render.com"
-	DB_NAME     = "meryouzik_bdd"
-	DB_USER     = "admin"
-	DB_PASSWORD = "mXXOwM0aUIePbdj2Y6FzWvJNvOXmkXuw"
+var (
+	DB_HOST     = os.Getenv("DB_HOST")
+	DB_NAME     = os.Getenv("DB_NAME")
+	DB_USER     = os.Getenv("DB_USER")
+	DB_PASSWORD = os.Getenv("DB_PASSWORD")
 )
 
 type Genre struct {
@@ -332,13 +334,7 @@ func clearAllChart(db *sql.DB) {
 	}
 }
 
-func main() {
-	dsn := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=require", DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		log.Fatal("Erreur connexion DB:", err)
-	}
-	defer db.Close()
+func runUpdate(db *sql.DB) {
 
 	clearAllChart(db)
 	fetchAndInsertGenres(db)
@@ -364,5 +360,29 @@ func main() {
 	fetchAndInsertTracksForAlbums(db)
 
 	log.Println("fin de l'insertion de nouveau tuples.")
+}
 
+func main() {
+	dsn := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=require", DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatal("Erreur connexion DB:", err)
+	}
+	defer db.Close()
+
+	// Exécuter immédiatement une première fois
+	runUpdate(db)
+
+	// Configurer le ticker pour s'exécuter toutes les heures
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			log.Println("Début de la mise à jour horaire...")
+			runUpdate(db)
+			log.Println("Mise à jour terminée. Prochaine exécution dans 1 heure.")
+		}
+	}
 }
