@@ -370,19 +370,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// Exécuter immédiatement une première fois
-	runUpdate(db)
+	// Journalisation du début
+	log.Println("=== Début de la mise à jour ===")
+	startTime := time.Now()
 
-	// Configurer le ticker pour s'exécuter toutes les heures
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
+	// Exécution
+	runUpdate(db) // Votre fonction existante
 
-	for {
-		select {
-		case <-ticker.C:
-			log.Println("Début de la mise à jour horaire...")
-			runUpdate(db)
-			log.Println("Mise à jour terminée. Prochaine exécution dans 1 heure.")
-		}
-	}
+	// Journalisation des performances
+	log.Printf("=== Mise à jour terminée en %v ===\n", time.Since(startTime))
+
 }
