@@ -4,15 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 )
 
-const (
-	DB_HOST     = "dpg-d0jfc0umcj7s73fur7ig-a.oregon-postgres.render.com"
-	DB_NAME     = "meryouzik_bdd"
-	DB_USER     = "admin"
-	DB_PASSWORD = "mXXOwM0aUIePbdj2Y6FzWvJNvOXmkXuw"
+var (
+	DB_HOST     = os.Getenv("DB_HOST")
+	DB_NAME     = os.Getenv("DB_NAME")
+	DB_USER     = os.Getenv("DB_USER")
+	DB_PASSWORD = os.Getenv("DB_PASSWORD")
 )
 
 func InitDB() *sql.DB {
