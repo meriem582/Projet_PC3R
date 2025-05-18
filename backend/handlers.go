@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -13,6 +16,12 @@ import (
 )
 
 var db *sql.DB
+
+func generateConfirmationToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
+}
 
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
@@ -25,7 +34,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	searchType := r.URL.Query().Get("type") 
+	searchType := r.URL.Query().Get("type")
 	if searchType == "" {
 		searchType = "artist"
 	}
@@ -150,10 +159,10 @@ func GetAllChartsHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var (
 			title, link                   string
-			id_artist, id_album, id_chart  int
-			nom_artist, picture_artist     string
-			link_artist, nom_album         string
-			rank, duration                 int
+			id_artist, id_album, id_chart int
+			nom_artist, picture_artist    string
+			link_artist, nom_album        string
+			rank, duration                int
 		)
 
 		if err := rows.Scan(
@@ -623,6 +632,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Vérification de l'existence de l'utilisateur
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM up_users WHERE email = $1 OR username = $2",
 		input.Email, input.Username).Scan(&count)
@@ -635,21 +645,95 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Hashage du mot de passe
 	hashedPassword, err := hashPassword(input.Password)
 	if err != nil {
 		http.Error(w, "Error processing password", http.StatusInternalServerError)
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO up_users (username, email, password) VALUES ($1, $2, $3)",
-		input.Username, input.Email, hashedPassword)
+	// Génération du token et date d'expiration
+	confirmationToken := generateConfirmationToken()
+	confirmationExpiry := time.Now().Add(24 * time.Hour) // Valide 24h
+
+	// Insertion dans la base de données
+	_, err = db.Exec(`
+		INSERT INTO up_users 
+		(username, email, password, confirmation_token, confirmation_expiry, confirmed) 
+		VALUES ($1, $2, $3, $4, $5, $6)`,
+		input.Username, input.Email, hashedPassword, confirmationToken, confirmationExpiry, false,
+	)
 	if err != nil {
-		http.Error(w, "Error creating user", http.StatusInternalServerError)
+		http.Error(w, "Error creating user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Réponse avec le token (pour le frontend)
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "User created. Please check your email for confirmation.",
+		"token":   confirmationToken,
+	})
+}
+
+func ConfirmEmailHandler(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Error(w, "Token manquant", http.StatusBadRequest)
+		return
+	}
+
+	// Debug: Affiche le token reçu
+	log.Println("Token reçu:", token)
+
+	var userID int
+	var expiryTime time.Time
+	var dbToken string
+
+	err := db.QueryRow(`
+        SELECT id, confirmation_expiry, confirmation_token 
+        FROM up_users 
+        WHERE confirmation_token = $1 AND confirmed = false`,
+		token,
+	).Scan(&userID, &expiryTime, &dbToken)
+
+	// Debug: Affiche ce qui est stocké en BDD
+	log.Println("Token en BDD:", dbToken, "Expiration:", expiryTime)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Token invalide ou déjà confirmé", http.StatusNotFound)
+		} else {
+			http.Error(w, "Erreur base de données", http.StatusInternalServerError)
+		}
+		log.Println("Erreur DB:", err)
+		return
+	}
+
+	if time.Now().After(expiryTime) {
+		http.Error(w, "Lien expiré", http.StatusGone)
+		return
+	}
+
+	// Marquez comme confirmé
+	_, err = db.Exec(`
+        UPDATE up_users 
+        SET confirmed = true, 
+            confirmation_token = NULL,
+            confirmation_expiry = NULL
+        WHERE id = $1`,
+		userID,
+	)
+	if err != nil {
+		log.Println("Erreur mise à jour:", err)
+		http.Error(w, "Erreur confirmation", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Email confirmé avec succès",
+	})
 }
 
 func checkPasswordHash(password, hash string) bool {
@@ -673,39 +757,66 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		http.Error(w, "Format de données invalide", http.StatusBadRequest)
 		return
 	}
 
 	var user struct {
-		ID       int
-		Username string
-		Email    string
-		Password string
+		ID        int
+		Username  string
+		Email     string
+		Password  string
+		Confirmed bool
 	}
 
-	err := db.QueryRow("SELECT id, username, email, password FROM up_users WHERE email = $1",
-		input.Email).Scan(&user.ID, &user.Username, &user.Email, &user.Password)
+	err := db.QueryRow(`
+        SELECT id, username, email, password, confirmed 
+        FROM up_users 
+        WHERE email = $1`,
+		input.Email,
+	).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Confirmed)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		} else {
-			http.Error(w, "Database error", http.StatusInternalServerError)
+			// Utilisateur non trouvé
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Aucun compte trouvé avec cet email",
+			})
+			return
 		}
+		// Erreur serveur
+		http.Error(w, "Erreur serveur", http.StatusInternalServerError)
 		return
 	}
 
 	if !checkPasswordHash(input.Password, user.Password) {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		// Mot de passe incorrect
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Mot de passe incorrect",
+		})
+		return
+	}
+
+	if !user.Confirmed {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Veuillez confirmer votre email avant de vous connecter",
+		})
 		return
 	}
 
 	token, err := generateJWTToken(user.ID)
 	if err != nil {
-		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		http.Error(w, "Erreur de génération de token", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"token": token,
 		"user": map[string]interface{}{

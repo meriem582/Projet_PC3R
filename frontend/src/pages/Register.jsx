@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import emailjs from '@emailjs/browser';
 import './Register.css';
+
+// Remplacez toute l'initialisation par :
+emailjs.init("Oet3_0tFf8UltwLXz") // Votre Public Key
 
 function Register({ onRegister }) {
   const [form, setForm] = useState({
@@ -14,6 +18,7 @@ function Register({ onRegister }) {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -23,31 +28,68 @@ function Register({ onRegister }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
+    // Validation des mots de passe
     if (form.password !== form.confirmPassword) {
       setError("Les mots de passe ne correspondent pas");
+      setIsLoading(false);
       return;
     }
 
     try {
+      // 1. Enregistrement de l'utilisateur
       const response = await axios.post('/register', {
         username: form.username,
         email: form.email,
         password: form.password
       });
 
-      const loginResponse = await axios.post('/login0', {
-        email: form.email,
-        password: form.password
+      console.log('Réponse complète du serveur:', response); // Ajoutez ce log
+
+      // 2. Envoi de l'email de confirmation
+      console.log("Données envoyées à EmailJS:", {
+        service: 'service_0a0g42c',
+        template: 'template_eg9z2lt',
+        data: {
+          to_email: form.email,
+          username: form.username,
+          confirmation_link: `${window.location.origin}/confirm-email?token=${response.token || response.data?.token}`,
+          nom_site: "MerYouZik"
+        },
+        publicKey: "Oet3_0tFf8UltwLXz"
+      })
+
+      await emailjs.send(
+    'service_0a0g42c', 
+    'template_eg9z2lt',
+    {
+        to_email: form.email,
+        username: form.username,
+        confirmation_link: `${window.location.origin}/confirm-email?token=${response.data.token || response.data.data?.token}`,
+        nom_site: "MerYouZik"
+    },
+    "Oet3_0tFf8UltwLXz"
+)
+
+      // 3. Redirection vers la page de succès
+      navigate('/register-success', { 
+        state: { 
+          message: "Inscription réussie !", 
+          email: form.email,
+          username: form.username
+        } 
       });
 
-      const { token, user } = loginResponse.data;
-      localStorage.setItem('token', token);
-      onRegister(user);
-      navigate('/');
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Erreur lors de l'inscription.");
+      console.error("Erreur lors de l'inscription:", err);
+      setError(
+        err.response?.data?.message || 
+        err.message || 
+        "Une erreur est survenue lors de l'inscription"
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,7 +109,6 @@ function Register({ onRegister }) {
       </div>
 
       <form onSubmit={handleSubmit} className="register-form">
-        {/* Les champs du formulaire restent les mêmes */}
         <div className="form-group">
           <input 
             type="text" 
@@ -75,7 +116,9 @@ function Register({ onRegister }) {
             placeholder="Nom d'utilisateur" 
             value={form.username} 
             onChange={handleChange} 
-            required 
+            required
+            minLength={3}
+            maxLength={20}
             className="form-input"
           />
         </div>
@@ -87,7 +130,7 @@ function Register({ onRegister }) {
             placeholder="Email" 
             value={form.email} 
             onChange={handleChange} 
-            required 
+            required
             className="form-input"
           />
         </div>
@@ -100,7 +143,8 @@ function Register({ onRegister }) {
               placeholder="Mot de passe" 
               value={form.password} 
               onChange={handleChange} 
-              required 
+              required
+              minLength={6}
               className="form-input password-input"
             />
             <button 
@@ -133,7 +177,8 @@ function Register({ onRegister }) {
               placeholder="Confirmez le mot de passe" 
               value={form.confirmPassword} 
               onChange={handleChange} 
-              required 
+              required
+              minLength={6}
               className="form-input confirm-password-input"
             />
             <button 
@@ -165,11 +210,22 @@ function Register({ onRegister }) {
           )}
         </div>
 
-        <button type="submit" className="submit-button" style={{background: '#9b09ff'}}>
-          <span>S'inscrire</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        <button 
+          type="submit" 
+          className="submit-button" 
+          style={{background: '#9b09ff'}}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            'Chargement...'
+          ) : (
+            <>
+              <span>S'inscrire</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </>
+          )}
         </button>
       </form>
       

@@ -27,6 +27,7 @@ func main() {
 	http.HandleFunc("/register", RegisterHandler)
 	http.HandleFunc("/login0", LoginHandler)
 	http.HandleFunc("/api/me", GetCurrentUserHandler)
+	http.HandleFunc("/confirm-email", ConfirmEmailHandler)
 
 	log.Println("Serveur lancé sur le port 8080 🚀")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

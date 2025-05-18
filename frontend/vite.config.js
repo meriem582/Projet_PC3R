@@ -23,6 +23,7 @@ export default defineConfig({
       "/register": 'http://localhost:8080',
       "/login0": 'http://localhost:8080',
       "/api/me": 'http://localhost:8080',
+      "/confirm-email": 'http://localhost:8080',
     }
   }
 })
