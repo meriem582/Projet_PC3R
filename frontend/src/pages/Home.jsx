@@ -5,7 +5,7 @@ import axios from 'axios';
 import './Home.css';
 
 function Home() {
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext); 
   const [results, setResults] = useState([]);
   const [charts, setCharts] = useState([]);
   const [tracks, setTracks] = useState([]);

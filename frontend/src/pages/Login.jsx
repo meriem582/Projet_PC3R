@@ -57,15 +57,17 @@ function Login({ onLogin }) {
       </div>
 
       {/* Message de succès */}
-      {location.state?.success && (
+    {location.state?.message && (
+      <div className="success-message-wrapper">
         <div className="success-message">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ marginRight: '8px' }}>
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="#4BB543" strokeWidth="2" strokeLinecap="round"/>
             <path d="M22 4L12 14.01l-3-3" stroke="#4BB543" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          {location.state.success}
+          {location.state.message}
         </div>
-      )}
+      </div>
+    )}
 
       <form onSubmit={handleSubmit} className="login-form">
         <div className="form-group">

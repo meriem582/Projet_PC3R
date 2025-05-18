@@ -286,3 +286,34 @@
         font-size: 1.5rem;
     }
 }
+
+.register-success-message {
+  background-color: rgba(100, 108, 255, 0.1);
+  border: 1px solid #9b09ff;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: center;
+  color: #ffffff;
+}
+
+.success-icon {
+  font-size: 40px;
+  color: #38a169;
+  margin-bottom: 15px;
+}
+
+.go-to-login-btn {
+  background: #9b09ff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  margin-top: 15px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.go-to-login-btn:hover {
+  background: #7d00e0;
+}
