@@ -1,5 +1,5 @@
 # Étape de build
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go mod download
@@ -13,4 +13,3 @@ COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 
 EXPOSE 8080
-CMD ["./meryouzik-backend"]
