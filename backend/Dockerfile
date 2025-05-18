@@ -1,15 +1,14 @@
-# Étape de build
-FROM golang:1.24-alpine AS builder
+# Builder stage
+FROM golang:1.24.1-alpine3.18 AS builder
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod tidy && go mod download
 COPY . .
-RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o meryouzik-backend .
 
-# Étape d'exécution
-FROM alpine:latest
+# Runtime stage
+FROM alpine:3.18
 WORKDIR /app
 COPY --from=builder /app/meryouzik-backend .
-COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/static ./static
-
 EXPOSE 8080
+CMD ["./meryouzik-backend"]
