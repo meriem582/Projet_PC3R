@@ -399,6 +399,7 @@ function Home() {
           rank: item.rank,
           duration: item.duration,
           link : item.link,
+          nom_album : item.nom_album,
           artistId: item.id_artist,
           artistName: item.nom_artist,
           picture: item.picture_artist
@@ -409,6 +410,7 @@ function Home() {
           rank: item.track.rank,
           duration: item.track.duration,
           link: item.track.link,
+          nom_album: item.track.nom_album,
           artistId: item.id,
           artistName: item.name,
           picture: item.picture
@@ -430,7 +432,7 @@ function Home() {
             <h3 className="artist-name">{track.artistName}</h3>
             <p className="track-title">{track.title}</p>
             <div className="track-meta">
-              {track.album && <p className="track-rank">Rank: {track.album}</p>}
+              {track.album && <p className="detail-label">Rank: {track.album}</p>}
               <br/>
               {track.rank && <p className="track-rank">Rank: {track.rank}</p>}
               <br />
