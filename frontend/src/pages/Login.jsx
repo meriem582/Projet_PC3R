@@ -29,7 +29,7 @@ function Login({ onLogin }) {
     setError('');
 
     try {
-      const response = await axios.post('/login0', {
+      const response = await axios.post('https://meryouzik-backend.onrender.com/login0', {
         email,
         password
       });
