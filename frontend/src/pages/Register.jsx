@@ -55,6 +55,8 @@ function Register({ onRegister }) {
         password: form.password
       });
 
+      console.log('Réponse du serveur après inscription:', response);
+
       // Envoi de l'email de confirmation
       await emailjs.send(
         'service_0a0g42c', 
@@ -62,7 +64,7 @@ function Register({ onRegister }) {
         {
           to_email: form.email,
           username: form.username,
-          confirmation_link: `${window.location.origin}/confirm-email?token=${response.token}`,
+          confirmation_link: `${window.location.origin}/confirm-email?token=${response.data.token}`,
           nom_site: "MerYouZik"
         },
         "Oet3_0tFf8UltwLXz"
