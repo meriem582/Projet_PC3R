@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('http://localhost:8080/api/me', {
+      axios.get('https://meryouzik-backend.onrender.com/api/me', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
