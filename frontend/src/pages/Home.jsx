@@ -428,7 +428,7 @@ function Home() {
         <div className="card-header">
           <div className="artist-info">
             <h3 className="artist-name">{track.artistName}</h3>
-            <p className="track-title">{track.title}</p>
+            <p className="track-title">Title: {track.title}</p>
             <div className="track-meta">
               {track.rank && <p className="track-rank">Rank: {track.rank}</p>}
               <br />
