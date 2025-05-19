@@ -632,7 +632,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vérification de l'existence de l'utilisateur
 	var count int
 	err := db.QueryRow("SELECT COUNT(*) FROM up_users WHERE email = $1 OR username = $2",
 		input.Email, input.Username).Scan(&count)
@@ -645,18 +644,15 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hashage du mot de passe
 	hashedPassword, err := hashPassword(input.Password)
 	if err != nil {
 		http.Error(w, "Error processing password", http.StatusInternalServerError)
 		return
 	}
 
-	// Génération du token et date d'expiration
 	confirmationToken := generateConfirmationToken()
 	confirmationExpiry := time.Now().Add(24 * time.Hour) // Valide 24h
 
-	// Insertion dans la base de données
 	_, err = db.Exec(`
 		INSERT INTO up_users 
 		(username, email, password, confirmation_token, confirmation_expiry, confirmed) 
@@ -668,7 +664,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Réponse avec le token (pour le frontend)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "User created. Please check your email for confirmation.",
@@ -683,8 +678,6 @@ func ConfirmEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Debug: Affiche le token reçu
-	log.Println("Token reçu:", token)
 
 	var userID int
 	var expiryTime time.Time
@@ -697,7 +690,6 @@ func ConfirmEmailHandler(w http.ResponseWriter, r *http.Request) {
 		token,
 	).Scan(&userID, &expiryTime, &dbToken)
 
-	// Debug: Affiche ce qui est stocké en BDD
 	log.Println("Token en BDD:", dbToken, "Expiration:", expiryTime)
 
 	if err != nil {
@@ -715,7 +707,6 @@ func ConfirmEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Marquez comme confirmé
 	_, err = db.Exec(`
         UPDATE up_users 
         SET confirmed = true, 
@@ -786,13 +777,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		// Erreur serveur
 		http.Error(w, "Erreur serveur", http.StatusInternalServerError)
 		return
 	}
 
 	if !checkPasswordHash(input.Password, user.Password) {
-		// Mot de passe incorrect
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{

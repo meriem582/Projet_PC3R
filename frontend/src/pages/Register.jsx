@@ -48,7 +48,6 @@ function Register({ onRegister }) {
     }
 
     try {
-      // Enregistrement de l'utilisateur
       const response = await axios.post(`https://meryouzik-backend.onrender.com/register`, {
         username: form.username,
         email: form.email,
@@ -56,7 +55,6 @@ function Register({ onRegister }) {
       });
 
 
-      // Envoi de l'email de confirmation
       await emailjs.send(
         'service_0a0g42c', 
         'template_eg9z2lt',
@@ -82,7 +80,6 @@ function Register({ onRegister }) {
     } catch (err) {
       console.error("Erreur lors de l'inscription:", err);
       
-      // Gestion des erreurs spécifiques
       if (err.response?.status === 409) {
         setError("Un compte existe déjà avec cet email ou nom d'utilisateur. Veuillez vous connecter ou utiliser des informations différentes.");
       } else if (err.response?.data?.message?.includes('email')) {

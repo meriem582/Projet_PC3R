@@ -13,11 +13,10 @@ function Login({ onLogin }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Afficher le message de succès si présent
   useEffect(() => {
     if (location.state?.success) {
       const timer = setTimeout(() => {
-        navigate(location.pathname, { state: {} }); // Efface le message après 5s
+        navigate(location.pathname, { state: {} }); 
       }, 5000);
       return () => clearTimeout(timer);
     }
