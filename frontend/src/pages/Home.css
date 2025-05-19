@@ -812,3 +812,52 @@ p.track-title {
   width: 16px;
   height: 16px;
 }
+
+/* Home.css - ajoutez ces styles */
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 15px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .music-app {
+    padding: 10px;
+  }
+  
+  .app-container {
+    padding: 0 10px;
+  }
+}
+
+/* Pour les boutons de recherche responsive */
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: white;
+    padding: 5px;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
+  
+  .input-container {
+    position: relative;
+  }
+}
