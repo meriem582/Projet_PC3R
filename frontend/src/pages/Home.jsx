@@ -27,7 +27,7 @@ function Home() {
     if (!user) return { like_count: 0, user_liked: false };
     
     try {
-      const response = await axios.get(`/likes?track_id=${trackId}&user_id=${user.id}`);
+      const response = await axios.get(`https://meryouzik-backend.onrender.com/likes?track_id=${trackId}&user_id=${user.id}`);
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération des likes :', error);
@@ -44,9 +44,9 @@ function Home() {
     const current = likesData[trackId] || { like_count: 0, user_liked: false };
     try {
       if (!current.user_liked) {
-        await axios.post('/like', { id_user: user.id, id_track: trackId });
+        await axios.post('https://meryouzik-backend.onrender.com/like', { id_user: user.id, id_track: trackId });
       } else {
-        await axios.delete('/unlike', { data: { id_user: user.id, id_track: trackId } });
+        await axios.delete('https://meryouzik-backend.onrender.com/unlike', { data: { id_user: user.id, id_track: trackId } });
       }
       const updated = await fetchLikeInfo(trackId);
       setLikesData(prev => ({ ...prev, [trackId]: updated }));
@@ -57,7 +57,7 @@ function Home() {
 
   const fetchComments = async (trackId) => {
     try {
-      const response = await axios.get(`/comments?track_id=${trackId}`);
+      const response = await axios.get(`https://meryouzik-backend.onrender.com/comments?track_id=${trackId}`);
       setComments(prev => ({ ...prev, [trackId]: response.data || [] }));
     } catch (error) {
       console.error('Erreur lors de la récupération des commentaires :', error);
@@ -70,7 +70,7 @@ function Home() {
     if (!user || !commentText?.trim()) return;
     
     try {
-      await axios.post('/comment', {
+      await axios.post('https://meryouzik-backend.onrender.com/comment', {
         id_user: user.id,
         id_track: trackId, 
         contenu: commentText,
@@ -91,7 +91,7 @@ function Home() {
     if (!user) return;
     
     try {
-      await axios.delete('/comment/delete', {
+      await axios.delete('https://meryouzik-backend.onrender.com/comment/delete', {
         data: {
           id: commentId,
           id_user: user.id
@@ -107,7 +107,7 @@ function Home() {
     if (!user || !editedCommentText.trim()) return;
   
     try {
-      await axios.put('/comment/update', {
+      await axios.put('https://meryouzik-backend.onrender.com/comment/update', {
         id: commentId,
         id_user: user.id,
         contenu: editedCommentText,
@@ -133,7 +133,7 @@ function Home() {
 
     const fetchResponseCount = async () => {
       try {
-        const response = await axios.get(`/response/count?comment_id=${comment.id}`);
+        const response = await axios.get(`https://meryouzik-backend.onrender.com/response/count?comment_id=${comment.id}`);
         setResponseCount(response.data?.count || 0);
       } catch (error) {
         console.error('Erreur lors du comptage des réponses:', error);
@@ -143,7 +143,7 @@ function Home() {
     const loadResponses = async () => {
       setIsLoadingResponses(true);
       try {
-        const response = await axios.get(`/response/get?comment_id=${comment.id}`);
+        const response = await axios.get(`https://meryouzik-backend.onrender.com/response/get?comment_id=${comment.id}`);
         const res = response.data || [];
         setResponses(res);
         setResponseCount(res.length);
@@ -161,7 +161,7 @@ function Home() {
       if (!user || !responseText?.trim()) return;
       
       try {
-        await axios.post('/response/add', {
+        await axios.post('https://meryouzik-backend.onrender.com/response/add', {
           id_user: user.id,
           id_comment: comment.id,
           contenu: responseText,
@@ -182,7 +182,7 @@ function Home() {
       if (!user || !editedResponseText.trim()) return;
   
       try {
-        await axios.put('/response/update', {
+        await axios.put('https://meryouzik-backend.onrender.com/response/update', {
           id: responseId,
           id_user: user.id,
           contenu: editedResponseText,
@@ -274,7 +274,7 @@ function Home() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (window.confirm("Supprimer cette réponse ?")) {
-                                      axios.delete('/response/delete', {
+                                      axios.delete('https://meryouzik-backend.onrender.com/response/delete', {
                                         data: {
                                           id: response.id,
                                           id_user: user.id
@@ -349,7 +349,7 @@ function Home() {
     }
 
     try {
-        const response = await axios.get(`/search?q=${encodeURIComponent(query)}&type=${searchType}`);
+        const response = await axios.get(`https://meryouzik-backend.onrender.com/search?q=${encodeURIComponent(query)}&type=${searchType}`);
         
        if (!response.data?.results?.length) {
             setResults([]);
@@ -581,7 +581,7 @@ function Home() {
   useEffect(() => {
     const fetchCharts = async () => {
       try {
-        const response = await axios.get('/charts');
+        const response = await axios.get('https://meryouzik-backend.onrender.com/charts');
         const data = Array.isArray(response.data) ? response.data : [];
         setCharts(data);
 
@@ -601,7 +601,7 @@ function Home() {
 
     const fetchRandomTracks = async (page = 1) => {
       try {
-        const response = await axios.get(`/tracks?page=${page}`);
+        const response = await axios.get(`https://meryouzik-backend.onrender.com/tracks?page=${page}`);
         const data = response.data.map(item => ({
           ...item,
           track: {
@@ -685,7 +685,7 @@ function Home() {
                 onClick={() => {
                   const nextPage = trackPage + 1;
                   setTrackPage(nextPage);
-                  axios.get(`/tracks?page=${nextPage}`)
+                  axios.get(`https://meryouzik-backend.onrender.com/tracks?page=${nextPage}`)
                     .then(response => {
                       setTracks(prev => [...prev, ...response.data]);
                     })
