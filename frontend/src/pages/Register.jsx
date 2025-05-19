@@ -55,7 +55,7 @@ function Register({ onRegister }) {
         password: form.password
       });
 
-      console.log('Réponse du serveur après inscription:', response);
+      console.log('Réponse du serveur après inscription:', response.token);
 
       // Envoi de l'email de confirmation
       await emailjs.send(
