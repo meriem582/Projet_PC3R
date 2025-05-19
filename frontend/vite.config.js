@@ -8,8 +8,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/search': "",
-      '/charts': "https://meryouzik-bahttps://meryouzik-backend.onrender.comckend.onrender.com", 
+      '/search': "https://meryouzik-backend.onrender.com",
+      '/charts': "https://meryouzik-backend.onrender.com", 
       '/tracks': "https://meryouzik-backend.onrender.com",
       '/like': "https://meryouzik-backend.onrender.com",
       '/unlike': "https://meryouzik-backend.onrender.com",

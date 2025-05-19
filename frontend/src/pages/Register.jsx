@@ -63,7 +63,7 @@ function Register({ onRegister }) {
         {
           to_email: form.email,
           username: form.username,
-          confirmation_link: `${window.location.origin}/confirm-email?token=${response.data.token}`,
+          confirmation_link: `https://meryouzik-backend.onrender.com/confirm-email?token=${response.data.token}`,
           nom_site: "MerYouZik"
         },
         "Oet3_0tFf8UltwLXz"
