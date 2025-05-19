@@ -430,25 +430,13 @@ function Home() {
             <h3 className="artist-name">{track.artistName}</h3>
             <p className="track-title">{track.title}</p>
             <div className="track-meta">
+              {track.album && <p className="track-rank">Rank: {track.album}</p>}
+              <br/>
               {track.rank && <p className="track-rank">Rank: {track.rank}</p>}
               <br />
               {track.duration && <p className="track-duration">Duration: {formatDuration(track.duration)}</p>}
-            </div>
-          </div>
-        </div>
-        
-        <div className="card-content">
-          <div className="track-image-container">
-            <img src={track.picture} alt={track.artistName} className="artist-image" />
-          </div>
-
-          {item.album && (
-            <div className="album-info">
-              <span className="detail-label">Album:</span> {item.album.title}
-            </div>
-          )}
-
-          {track.link && (
+              <br />
+               {track.link && (
             <div className="deezer-link-container">
               <a 
                 href={track.link} 
@@ -460,6 +448,16 @@ function Home() {
               </a>
             </div>
           )}
+            </div>
+          </div>
+        </div>
+        
+        <div className="card-content">
+          <div className="track-image-container">
+            <img src={track.picture} alt={track.artistName} className="artist-image" />
+          </div>
+
+         
         </div>
         
 
