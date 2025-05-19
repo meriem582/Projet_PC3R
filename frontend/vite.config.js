@@ -4,31 +4,29 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const API_URL = process.env.VITE_API_URL
-
 export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/search': API_URL,
-      '/charts': API_URL, 
-      '/tracks': API_URL,
-      '/like': API_URL,
-      '/unlike': API_URL,
-      '/likes': API_URL,
-      '/comment': API_URL,
-      '/comments': API_URL,
-      '/comment/delete': API_URL,
-      '/comment/update': API_URL,
-      '/response/add': API_URL,
-      '/response/delete': API_URL,
-      '/response/get': API_URL,
-      '/response/count': API_URL,
-      '/response/update': API_URL,
-      '/register': API_URL,
-      '/login0': API_URL,
-      '/api/me': API_URL,
-      '/confirm-email': API_URL,
+      '/search': "https://meryouzik-backend.onrender.com",
+      '/charts': "https://meryouzik-backend.onrender.com", 
+      '/tracks': "https://meryouzik-backend.onrender.com",
+      '/like': "https://meryouzik-backend.onrender.com",
+      '/unlike': "https://meryouzik-backend.onrender.com",
+      '/likes': "https://meryouzik-backend.onrender.com",
+      '/comment': "https://meryouzik-backend.onrender.com",
+      '/comments': "https://meryouzik-backend.onrender.com",
+      '/comment/delete': "https://meryouzik-backend.onrender.com",
+      '/comment/update': "https://meryouzik-backend.onrender.com",
+      '/response/add': "https://meryouzik-backend.onrender.com",
+      '/response/delete': "https://meryouzik-backend.onrender.com",
+      '/response/get': "https://meryouzik-backend.onrender.com",
+      '/response/count': "https://meryouzik-backend.onrender.com",
+      '/response/update': "https://meryouzik-backend.onrender.com",
+      '/register': "https://meryouzik-backend.onrender.com",
+      '/login0': "https://meryouzik-backend.onrender.com",
+      '/api/me': "https://meryouzik-backend.onrender.com",
+      '/confirm-email': "https://meryouzik-backend.onrender.com",
     }
   }
 })

@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get(`${import.meta.env.VITE_API_URL}/api/me`, {
+      axios.get(`https://meryouzik-backend.onrender.com/api/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
