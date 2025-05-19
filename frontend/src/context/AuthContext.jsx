@@ -6,10 +6,12 @@ export const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); 
+  const API_URL = process.env.VITE_API_URL
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get(`${import.meta.env.VITE_API_URL}/api/me`, {
+      axios.get(`${API_URL}/api/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
