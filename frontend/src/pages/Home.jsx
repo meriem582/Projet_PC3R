@@ -398,6 +398,7 @@ function Home() {
           title: item.title,
           rank: item.rank,
           duration: item.duration,
+          link : item.link,
           artistId: item.id_artist,
           artistName: item.nom_artist,
           picture: item.picture_artist
@@ -407,6 +408,7 @@ function Home() {
           title: item.track.title,
           rank: item.track.rank,
           duration: item.track.duration,
+          link: item.track.link,
           artistId: item.id,
           artistName: item.name,
           picture: item.picture
@@ -445,7 +447,21 @@ function Home() {
               <span className="detail-label">Album:</span> {item.album.title}
             </div>
           )}
+
+          {track.link && (
+            <div className="deezer-link-container">
+              <a 
+                href={track.link} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="deezer-link"
+              >
+                Écouter sur Deezer
+              </a>
+            </div>
+          )}
         </div>
+        
 
         <div className="card-footer">
           <div className="like-section">
