@@ -813,7 +813,6 @@ p.track-title {
   height: 16px;
 }
 
-/* Home.css - ajoutez ces styles */
 .app-container {
   width: 100%;
   max-width: 1200px;
@@ -831,33 +830,17 @@ p.track-title {
   }
 }
 
-/* Pour les boutons de recherche responsive */
-.mobile-only {
-  display: none;
-}
-
-.desktop-only {
-  display: block;
-}
 
 @media (max-width: 768px) {
-  .mobile-only {
-    display: block;
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: white;
-    padding: 5px;
+  .music-app {
+    padding: 10px;
   }
   
-  .desktop-only {
-    display: none;
+  .app-container {
+    padding: 0 10px;
   }
   
-  .input-container {
-    position: relative;
+  body {
+    overflow-x: hidden;
   }
 }

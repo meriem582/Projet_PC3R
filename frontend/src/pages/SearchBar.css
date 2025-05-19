@@ -1,4 +1,3 @@
-/* SearchBar.css */
 .search-container {
   width: 100%;
   margin-bottom: 20px;
@@ -15,8 +14,6 @@
 .search-input-wrapper {
   flex-grow: 1;
   position: relative;
-  display: flex;
-  flex-direction: column;
 }
 
 .search-input {
@@ -43,9 +40,6 @@
   border-radius: 20px;
   padding: 6px;
   margin-top: 8px;
-  overflow-x: auto;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
 }
 
 .type-option {
@@ -99,7 +93,7 @@
   height: 20px;
 }
 
-/* Media Queries pour mobile */
+/* Version mobile seulement */
 @media (max-width: 768px) {
   .search-bar {
     flex-direction: column;
@@ -114,6 +108,9 @@
     width: 100%;
     justify-content: space-between;
     padding: 6px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
   
   .type-option {
@@ -125,18 +122,6 @@
     margin-left: 0;
     margin-top: 10px;
     align-self: flex-end;
-  }
-}
-
-@media (max-width: 480px) {
-  .search-input {
-    padding: 10px 14px;
-    font-size: 13px;
-  }
-  
-  .type-icon {
-    margin-right: 4px;
-    font-size: 12px;
   }
   
   .divider {
