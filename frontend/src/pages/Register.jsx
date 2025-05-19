@@ -62,7 +62,7 @@ function Register({ onRegister }) {
         {
           to_email: form.email,
           username: form.username,
-          confirmation_link: `${window.location.origin}/confirm-email?token=${response.token}`,
+          confirmation_link: `${window.location.origin}/confirm-email?token=${token}`,
           nom_site: "MerYouZik"
         },
         "Oet3_0tFf8UltwLXz"
