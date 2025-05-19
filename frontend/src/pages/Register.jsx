@@ -49,7 +49,7 @@ function Register({ onRegister }) {
 
     try {
       // Enregistrement de l'utilisateur
-      const response = await axios.post('/register', {
+      const response = await axios.post(`${API_URL}/register`, {
         username: form.username,
         email: form.email,
         password: form.password
