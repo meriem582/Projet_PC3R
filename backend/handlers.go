@@ -670,7 +670,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Réponse avec le token (pour le frontend)
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "User created. Please check your email for confirmation.",
 		"token":   confirmationToken,
 	})
