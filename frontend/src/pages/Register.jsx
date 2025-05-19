@@ -20,6 +20,8 @@ function Register({ onRegister }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const navigate = useNavigate();
+  const API_URL = process.env.VITE_API_URL
+
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -60,7 +62,7 @@ function Register({ onRegister }) {
         {
           to_email: form.email,
           username: form.username,
-          confirmation_link: `${window.location.origin}/confirm-email?token=${response.data.token}`,
+          confirmation_link: `${API_URL}/confirm-email?token=${response.data.token}`,
           nom_site: "MerYouZik"
         },
         "Oet3_0tFf8UltwLXz"
