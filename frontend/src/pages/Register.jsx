@@ -266,7 +266,7 @@ function Register({ onRegister }) {
       )}
       
       <div className="login-link">
-        Déjà un compte? <span onClick={() => navigate('/login')} style={{cursor: 'pointer', textDecoration: 'underline'}}>Connectez-vous</span>
+        Déjà un compte? <Link to="/login" className="login-link-anchor">Connectez-vous</Link>
       </div>
     </div>
   );

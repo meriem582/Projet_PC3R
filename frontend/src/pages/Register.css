@@ -317,3 +317,16 @@
 .go-to-login-btn:hover {
   background: #7d00e0;
 }
+
+.login-link a,
+.login-link-anchor {
+    color: #9b09ff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-link a:hover,
+.login-link-anchor:hover {
+    text-decoration: underline;
+    color: #9b09ff;
+}
